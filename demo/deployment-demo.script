@@ -1,0 +1,25 @@
+# Demonstrate deployment of NFD into a cluster
+# List our nodes, node annotations and node labels
+kubectl get no
+kubectl get no -o json | jq '.items[].metadata.annotations'
+kubectl get no -o json | jq '.items[].metadata.labels'
+# List Pods, Services and DaemonSets
+kubectl get svc,ds,po
+# See that there are no NFD-related RBAC objects
+kubectl get sa,clusterrole,clusterrolebinding | grep nfd || :
+# Deploy nfd-master
+kubectl create -f nfd-master.yaml.template
+# See that the Service, DaemonSet and Pods are created
+kubectl get svc,ds
+kubectl get po -o wide
+# Get the RBAC objects
+kubectl get sa,clusterrole,clusterrolebinding | grep nfd
+# Deploy nfd-worker
+kubectl create -f nfd-worker-daemonset.yaml.template
+# See nfd-worker DaemonSet and Pods
+kubectl get ds
+kubectl get po -o wide
+# List node annotations
+kubectl get no -o json | jq '.items[].metadata.annotations'
+# List node labels
+kubectl get no -o json | jq '.items[].metadata.labels'
