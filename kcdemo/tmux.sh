@@ -2,7 +2,7 @@
 
 export DEMO_PROMPT=1
 
-ns="default"
+ns="nfd"
 if [ -n "$1" ]; then
     ns="$1"
 fi

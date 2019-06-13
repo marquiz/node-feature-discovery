@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-ns="default"
+ns="nfd"
 if [ -n "$1" ]; then
     ns=$1
 fi
