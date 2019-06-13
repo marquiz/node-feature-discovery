@@ -67,6 +67,7 @@ spec:
               fieldRef:
                 fieldPath: spec.nodeName
           image: quay.io/kubernetes_incubator/node-feature-discovery:v0.4.0
+          imagePullPolicy: Always
           name: nfd-master
           command:
             - "nfd-master"

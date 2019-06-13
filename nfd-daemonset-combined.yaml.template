@@ -59,6 +59,7 @@ spec:
               fieldRef:
                 fieldPath: spec.nodeName
           image: quay.io/kubernetes_incubator/node-feature-discovery:v0.4.0
+          imagePullPolicy: Always
           name: nfd-master
           command:
             - "nfd-master"
@@ -68,11 +69,14 @@ spec:
               fieldRef:
                 fieldPath: spec.nodeName
           image: quay.io/kubernetes_incubator/node-feature-discovery:v0.4.0
+          imagePullPolicy: Always
           name: nfd-worker
           command:
             - "nfd-worker"
           args:
             - "--sleep-interval=60s"
+            # Disable kernel and system
+            - "--sources=cpu,iommu,local,memory,network,pci,storage"
           volumeMounts:
             - name: host-boot
               mountPath: "/host-boot"
