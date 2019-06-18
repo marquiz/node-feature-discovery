@@ -30,8 +30,8 @@ spec:
           args:
             - "--sleep-interval=60s"
             - "--server=nfd-master:8080"
-            # Disable kernel and system
-            - "--sources=cpu,iommu,local,memory,network,pci,storage"
+            # Disable system and storage
+            - "--sources=cpu,iommu,kernel,local,memory,network,pci"
 ## Enable TLS authentication (1/3)
 ## The example below assumes having the root certificate named ca.crt stored in
 ## a ConfigMap named nfd-ca-cert, and, the TLS authentication credentials stored

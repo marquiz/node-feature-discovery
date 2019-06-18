@@ -30,7 +30,7 @@ spec:
             - "--oneshot"
             - "--server=nfd-master:8080"
             # Disable kernel and system
-            - "--sources=cpu,iommu,local,memory,network,pci,storage"
+            - "--sources=cpu,iommu,kernel,local,memory,network,pci"
           ports:
             - containerPort: 7156
               hostPort: 7156
