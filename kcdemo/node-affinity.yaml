@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: node-affinity-demo
+  namespace: demo
+spec:
+  containers:
+  - image: k8s.gcr.io/pause
+    name: pause
+  affinity:
+    nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: feature.node.kubernetes.io/kernel-version.major
+              operator: Gt
+              values: ['3']
+            - key: feature.node.kubernetes.io/kernel-version.minor
+              operator: Gt
+              values: ['2']
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+            - key: feature.node.kubernetes.io/cpu-hardware_multithreading
+              operator: NotIn
+              values: ['true']
+
+
+
