@@ -18,3 +18,6 @@ kubectl get no -o yaml | sed -e '/^\s*nfd.node.kubernetes.io/d' -e '/^\s*feature
 
 kubectl delete ns demo
 kubectl delete ns nfd
+
+# Remove gpu ER
+curl --header "Content-Type: application/json-patch+json" --request PATCH --data '[{"op": "remove", "path": "/status/capacity/gpu.intel.com~1i915"}]' http://localhost:8001/api/v1/nodes/node3/status
