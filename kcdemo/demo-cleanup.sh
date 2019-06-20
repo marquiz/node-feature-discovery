@@ -17,3 +17,4 @@ kubectl -n $ns delete ds/nfd-master \
 kubectl get no -o yaml | sed -e '/^\s*nfd.node.kubernetes.io/d' -e '/^\s*feature.node.kubernetes.io/d' | kubectl replace -f -
 
 kubectl delete ns demo
+kubectl delete ns nfd
