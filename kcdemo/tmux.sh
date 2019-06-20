@@ -1,4 +1,5 @@
 #!/bin/bash
+this_dir=`dirname $0`
 
 export DEMO_PROMPT=1
 
@@ -8,7 +9,8 @@ if [ -n "$1" ]; then
 fi
 
 # Window watching NFD resources
-tmux new-session -d watch kubectl -n $ns get ds,svc,po -o wide
+#tmux new-session -d watch kubectl -n $ns get ds,svc,po -o wide
+tmux new-session -d watch "$this_dir/watch-ns.sh" $ns
 
 # Window watching node labels and annotations
 # NOTE: just fire up bash to run watch-nodes.sh manually to work arounc some
@@ -20,6 +22,7 @@ tmux split-window -h -d bash
 tmux split-window -v -d bash
 
 # Window for watching demo resources
-tmux split-window -v -d watch kubectl -n demo get ds,svc,po -o wide
+#tmux split-window -v -d watch kubectl -n demo get ds,svc,po -o wide
+tmux split-window -v -d watch "$this_dir/watch-ns.sh" demo
 
 tmux attach
