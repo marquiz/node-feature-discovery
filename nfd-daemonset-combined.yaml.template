@@ -75,8 +75,7 @@ spec:
             - "nfd-worker"
           args:
             - "--sleep-interval=60s"
-            # Disable system and storage
-            - "--sources=cpu,iommu,kernel,local,memory,network,pci"
+            - "--sources=storage,pci"
           volumeMounts:
             - name: host-boot
               mountPath: "/host-boot"
