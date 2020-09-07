@@ -1,9 +1,20 @@
 ---
 title: "Master Cmdline Reference"
 layout: default
+parent: Advanced
+nav_order: 3
 ---
 
 # NFD-Master Commandline Flags
+{: .no_toc }
+
+## Table of Contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
 
 To quickly view available command line flags execute `nfd-master --help`.
 In a docker container:

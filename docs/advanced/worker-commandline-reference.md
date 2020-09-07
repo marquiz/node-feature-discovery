@@ -1,9 +1,20 @@
 ---
 title: "Worker Cmdline Reference"
 layout: default
+parent: Advanced
+nav_order: 4
 ---
 
 # NFD-Worker Commandline Flags
+{: .no_toc }
+
+## Table of Contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
 
 To quickly view available command line flags execute `nfd-worker --help`.
 In a docker container:

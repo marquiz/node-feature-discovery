@@ -1,9 +1,20 @@
 ---
 title: "Introduction"
 layout: default
+parent: Get started
+nav_order: 2
 ---
 
 # Introduction
+{: .no_toc }
+
+## Table of Contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
 
 This software enables node feature discovery for Kubernetes. It detects
 hardware features available on each node in a Kubernetes cluster, and advertises

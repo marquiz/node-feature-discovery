@@ -1,6 +1,8 @@
 ---
 title: "Worker Config Reference"
 layout: default
+parent: Advanced
+nav_order: 5
 ---
 
 # NFD-Worker Configuration File Reference

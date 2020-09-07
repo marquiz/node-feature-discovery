@@ -22,7 +22,7 @@ url: "https://kubernetes-sigs.github.com" # the base hostname & protocol for you
 
 # Build settings
 markdown: kramdown
-theme: minima
+remote_theme: pmarsceill/just-the-docs
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
