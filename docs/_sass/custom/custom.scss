@@ -1,3 +1,10 @@
-.nav-list .nav-list-item > .nav-list {
-  display: block !important;
+.nav-list {
+    .nav-list-item {
+      .nav-list-expander {
+          display: none;
+      }
+      > .nav-list {
+          display: block !important;
+      }
+    }
 }
