@@ -3,7 +3,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/node-feature-discovery)](https://goreportcard.com/report/github.com/kubernetes-sigs/node-feature-discovery)
 [![Prow Build](https://prow.k8s.io/badge.svg?jobs=pull-node-feature-discovery-build-image)](https://prow.k8s.io/job-history/gs/kubernetes-jenkins/pr-logs/directory/pull-node-feature-discovery-build-image)
 
-- [Overview](#overview)
 - [Command line interface](#command-line-interface)
 - [Feature discovery](#feature-discovery)
   - [Feature sources](#feature-sources)
@@ -17,17 +16,6 @@
 - [Community](#community)
 - [License](#license)
 - [Demo](#demo)
-
-## Overview
-
-This software enables node feature discovery for Kubernetes. It detects
-hardware features available on each node in a Kubernetes cluster, and advertises
-those features using node labels.
-
-NFD consists of two software components:
-1. **nfd-master** is responsible for labeling Kubernetes node objects
-2. **nfd-worker** is detects features and communicates them to nfd-master.
-   One instance of nfd-worker is supposed to be run on each node of the cluster
 
 ## Command line interface
 
