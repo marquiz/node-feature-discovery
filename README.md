@@ -144,22 +144,6 @@ for up-to-date information about the required volume mounts.
 
 ## Feature discovery
 
-### Feature sources
-
-The current set of feature sources are the following:
-
-- CPU
-- Custom
-- IOMMU
-- Kernel
-- Memory
-- Network
-- PCI
-- Storage
-- System
-- USB
-- Local (hooks for user-specific features)
-
 ### Feature labels
 
 The published node labels encode a few pieces of information:
@@ -177,23 +161,6 @@ Feature label names adhere to the following pattern:
 The last component (i.e. `attribute-name`) is optional, and only used if a
 feature logically has sub-hierarchy, e.g. `sriov.capable` and
 `sriov.configure` from the `network` source.
-
-
-```json
-{
-  "feature.node.kubernetes.io/cpu-<feature-name>": "true",
-  "feature.node.kubernetes.io/custom-<feature-name>": "true",
-  "feature.node.kubernetes.io/iommu-<feature-name>": "true",
-  "feature.node.kubernetes.io/kernel-<feature name>": "<feature value>",
-  "feature.node.kubernetes.io/memory-<feature-name>": "true",
-  "feature.node.kubernetes.io/network-<feature-name>": "true",
-  "feature.node.kubernetes.io/pci-<device label>.present": "true",
-  "feature.node.kubernetes.io/storage-<feature-name>": "true",
-  "feature.node.kubernetes.io/system-<feature name>": "<feature value>",
-  "feature.node.kubernetes.io/usb-<device label>.present": "<feature value>",
-  "feature.node.kubernetes.io/<file name>-<feature name>": "<feature value>"
-}
-```
 
 The `--sources` flag controls which sources to use for discovery.
 
@@ -993,19 +960,6 @@ spec:
 ```
 
 For more details on targeting nodes, see [node selection][node-sel].
-
-## Node Annotations
-
-NFD annotates nodes it is running on:
-
-| Annotation                                | Description
-| ----------------------------------------- | -----------
-| nfd.node.kubernetes.io/master.version     | Version of the nfd-master instance running on the node. Informative use only.
-| nfd.node.kubernetes.io/worker.version     | Version of the nfd-worker instance running on the node. Informative use only.
-| nfd.node.kubernetes.io/feature-labels     | Comma-separated list of node labels managed by NFD. NFD uses this internally so must not be edited by users.
-| nfd.node.kubernetes.io/extended-resources | Comma-separated list of node extended resources managed by NFD. NFD uses this internally so must not be edited by users.
-
-Unapplicable annotations are not created, i.e. for example master.version is only created on nodes running nfd-master.
 
 ## Community
 
