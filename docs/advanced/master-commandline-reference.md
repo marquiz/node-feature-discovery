@@ -19,42 +19,162 @@ nav_order: 3
 To quickly view available command line flags execute `nfd-master --help`.
 In a docker container:
 ```
-$ docker run k8s.gcr.io/nfd/node-feature-discovery:v0.6.0 nfd-master --help
-nfd-master.
-
-  Usage:
-  nfd-master [--no-publish] [--label-whitelist=<pattern>] [--port=<port>]
-     [--ca-file=<path>] [--cert-file=<path>] [--key-file=<path>]
-     [--verify-node-name] [--extra-label-ns=<list>] [--resource-labels=<list>]
-  nfd-master -h | --help
-  nfd-master --version
-
-  Options:
-  -h --help                       Show this screen.
-  --version                       Output version and exit.
-  --port=<port>                   Port on which to listen for connections.
-                                  [Default: 8080]
-  --ca-file=<path>                Root certificate for verifying connections
-                                  [Default: ]
-  --cert-file=<path>              Certificate used for authenticating connections
-                                  [Default: ]
-  --key-file=<path>               Private key matching --cert-file
-                                  [Default: ]
-  --verify-node-name              Verify worker node name against CN from the TLS
-                                  certificate. Only has effect when TLS authentication
-                                  has been enabled.
-  --no-publish                    Do not publish feature labels
-  --label-whitelist=<pattern>     Regular expression to filter label names to
-                                  publish to the Kubernetes API server.
-                                  NB: the label namespace is omitted i.e. the filter
-                                  is only applied to the name part after '/'.
-                                  [Default: ]
-  --extra-label-ns=<list>         Comma separated list of allowed extra label namespaces
-                                  [Default: ]
-  --resource-labels=<list>        Comma separated list of labels to be exposed as extended resources.
-                                  [Default: ]
+docker run gcr.io/k8s-staging-nfd/node-feature-discovery:master nfd-master --help
 ```
 
-### `--version
+### -h, --help
 
-Output version and exit.
+Print usage and exit.
+
+### --version
+
+Print version and exit.
+
+### --prune
+
+The `--prune` flag is a sub-command like option for cleaning up the cluster. It
+causes nfd-master to remove all NFD related labels, annotations and extended
+resources from all Node objects of the cluster and exit.
+
+
+### --port
+
+The `--port` flag specifies the TCP port that nfd-master listens for incoming requests.
+
+Default: 8080
+
+Example:
+```
+$ nfd-master --port=443
+```
+
+### --ca-file
+
+The `--ca-file` is one of the three flags (together with `--cert-file` and
+`--key-file`) controlling master-worker mutual TLS authentication on the
+nfd-master side. This flag specifies the TLS root certificate that is used for
+authenticating incoming connections. Nfd-worker side needs to have matching key
+and cert files configured in order for the incoming requests to be accepted.
+
+Default: *empty*
+
+Note: Must be specified together with `--cert-file` and `--key-file`
+
+Example:
+```
+$ nfd-master --ca-file=/opt/nfd/ca.crt --cert-file=/opt/nfd/master.crt --key-file=/opt/nfd/master.key
+```
+
+### --cert-file
+
+The `--cert-file` is one of the three flags (together with `--ca-file` and
+`--key-file`) controlling master-worker mutual TLS authentication on the
+nfd-master side. This flag specifies the TLS certificate presented for
+authenticating outgoing traffic towards nfd-worker.
+
+Default: *empty*
+
+Note: Must be specified together with `--ca-file` and `--key-file`
+
+Example:
+```
+$ nfd-master --cert-file=/opt/nfd/master.crt --key-file=/opt/nfd/master.key --ca-file=/opt/nfd/ca.crt
+```
+
+### --key-file
+
+The `--key-file` is one of the three flags (together with `--ca-file` and
+`--cert-file`) controlling master-worker mutual TLS authentication on the
+nfd-master side. This flag specifies the private key corresponding the given
+certificate file (`--cert-file`) that is used for authenticating outgoing
+traffic.
+
+Default: *empty*
+
+Note: Must be specified together with `--cert-file` and `--ca-file`
+
+Example:
+```
+$ nfd-master --key-file=/opt/nfd/master.key --cert-file=/opt/nfd/master.crt --ca-file=/opt/nfd/ca.crt
+```
+
+### --verify-node-name
+
+The `--verify-node-name` flag controls the NodeName based authorization of
+incoming requests and only has effect when mTLS authentication has been enabled
+(with `--ca-file`, `--cert-file` and `--key-file`). If enabled, the worker node
+name of the incoming must match with the CN in its TLS certificate. Thus,
+workers are only able to label the node they are running on (or the node whose
+certificate they present), and, each worker must have an individual
+certificate.
+
+Node Name based authorization is disabled by default and thus it is possible
+for all nfd-worker pods in the cluster to use one shared certificate, making
+NFD deployment much easier.
+
+Default: *false*
+
+Example:
+```
+$ nfd-master --verify-node-name --ca-file=/opt/nfd/ca.crt --cert-file=/opt/nfd/master.crt --key-file=/opt/nfd/master.key
+```
+
+### --no-publish
+
+The `--no-publish` flag disables all communication with the Kubernetes API
+server, making a "dry-run" flag for nfd-master. No Labels, Annotations or
+ExtendedResources (or any other properties of any Kubernetes API objects) are
+modified.
+
+Default: *false*
+
+Example:
+```
+$ nfd-master --no-publish
+```
+
+### --label-whitelist
+
+The `--label-whitelist` specifies a regular expression for filtering feature
+labels based on their name. Each label must match against the given reqular
+expression in order to be published.
+
+Note: The regular expression is only matches against the "basename" part of the
+label, i.e. to the part of the name after '/'. The label namespace is omitted.
+
+Default: *empty*
+
+Example:
+```
+$ nfd-master --label-whitelist='.*cpuid\.'
+```
+
+### --extra-label-ns
+
+The `--extra-label-ns` flag specifies a comma-separated list of allowed feature
+label namespaces. By default, nfd-master only allows creating labels in the
+default `feature.node.kubernetes.io` label namespace. This option can be used
+to allow vendor-specific namespaces for custom labels from the local and custom
+feature sources.
+
+The same namespace control and this flag applies Extended Resources (created with `--resource-labels`), too.
+
+Default: *empty*
+
+Example:
+```
+$ nfd-master --extra-label-ns=vendor-1.com,vendor-2.io
+```
+
+### --resource-labels
+
+The `--resource-labels` flag specifies a comma-separated list of features to be
+advertised as extended resources instead of labels. Features that have integer
+values can be published as Extended Resources by listing them in this flag.
+
+Default: *empty*
+
+Example:
+```
+$ nfd-master --resource-labels=vendor-1.com/feature-1,vendor-2.io/feature-2
+```
