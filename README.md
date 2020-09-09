@@ -8,7 +8,6 @@
   - [System requirements](#system-requirements)
   - [Usage](#usage)
 - [Targeting nodes with specific features](#targeting-nodes-with-specific-features)
-- [Demo](#demo)
 
 ## Command line interface
 
@@ -251,10 +250,6 @@ by nfd-worker matches the Common Name (CN) of its certificate. This means that
 each nfd-worker requires a individual node-specific TLS certificate.
 
 
-#### Usage demo
-
-[![asciicast](https://asciinema.org/a/247316.svg)](https://asciinema.org/a/247316)
-
 ### Configuration options
 
 Nfd-worker supports a configuration file. The default location is
@@ -333,9 +328,6 @@ spec:
 For more details on targeting nodes, see [node selection][node-sel].
 
 
-## Demo
-
-A demo on the benefits of using node feature discovery can be found in [demo](demo/).
 
 <!-- Links -->
 [docker-down]: https://docs.docker.com/install
