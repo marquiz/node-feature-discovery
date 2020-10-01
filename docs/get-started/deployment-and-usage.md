@@ -190,11 +190,6 @@ Currently, the only available configuration options are related to the
 feature sources.
 
 
-### Customization
-
-*WORK IN PROGRESS...*
-
-
 ## Using Node Labels
 
 Nodes with specific features can be targeted using the `nodeSelector` field. The
