@@ -28,12 +28,12 @@ nav_order: 3
 ### Operator
 
 Deployment using the
-[Node Feature Discovery Operator](https://github.com/kubernetes-sigs/node-feature-discovery-operator)
+[Node Feature Discovery Operator][nfd-operator]
 is recommended to be done via
 [operatorhub.io](https://operatorhub.io/operator/nfd-operator).
 
 1. You need to have
-   [OLM](https://github.com/operator-framework/operator-lifecycle-manager)
+   [OLM][OLM]
    installed. If you don't, take a look at the
    [latest release](https://github.com/operator-framework/operator-lifecycle-manager/releases/latest)
    for detailed instructions.
@@ -244,4 +244,48 @@ For more details on targeting nodes, see
 
 ## Uninstallation
 
-*WORK IN PROGRESS...*
+### Operator
+
+If you followed the deployment instructions above you can simply do:
+```
+kubectl -n nfd delete NodeFeatureDiscovery my-nfd-deployment
+```
+Optionally, you can also remove the namespace:
+```
+kubectl delete ns nfd
+```
+
+See the [node-feature-discovery-operator][nfd-operator] and [OLM][OLM] project
+documentation for instructions for uninstalling the operator and operator
+lifecycle manager, respectively.
+
+
+### Manual
+
+```
+NFD_NS=node-feature-discovery
+kubectl -n $NFD_NS delete ds nfd-worker
+kubectl -n $NFD_NS delete deploy nfd-master
+kubectl -n $NFD_NS delete svc nfd-master
+kubectl -n $NFD_NS delete sa nfd-master
+kubectl delete clusterrole nfd-master
+kubectl delete clusterrolebinding nfd-master
+```
+
+### Removing Feature Labels
+
+Nfd-master has a special `--prune` command line flag for removing all
+nfd-related node labels, annotations and extended resources from the cluster.
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/node-feature-discovery/maste/nfd-prune.yaml.template
+kubectl -n node-feature-discovery wait job.batch/nfd-prune --for=condition=complete && \
+    kubectl -n node-feature-discovery delete job/nfd-prune
+```
+
+**NOTE:** You must run prune before removing the RBAC rules (serviceaccount,
+clusterrole and clusterrolebinding).
+
+
+<!-- Links -->
+[nfd-operator]: https://github.com/kubernetes-sigs/node-feature-discovery-operator
+[OLM]: https://github.com/operator-framework/operator-lifecycle-manager
