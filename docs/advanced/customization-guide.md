@@ -3,6 +3,7 @@ title: "Customization Guide"
 layout: default
 parent: Advanced
 nav_order: 7
+published: false
 ---
 
 # Customization Guide
@@ -16,5 +17,8 @@ nav_order: 7
 
 ---
 
+***WORK IN PROGRESS***
+
 This document explains with examples how to use hooks, feature files and the
 custom feature source.
+

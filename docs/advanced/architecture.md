@@ -3,6 +3,7 @@ title: "Architecture"
 layout: default
 parent: Advanced
 nav_order: 2
+published: false
 ---
 
 # Architecture
@@ -15,5 +16,7 @@ nav_order: 2
 {:toc}
 
 ---
+
+***WORK IN PROGRESS***
 
 This page first gives an architectural overview and describes principles behind.
