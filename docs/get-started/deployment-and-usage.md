@@ -27,7 +27,35 @@ nav_order: 3
 
 ### Operator
 
-*WORK IN PROGRESS...*
+Deployment using the
+[Node Feature Discovery Operator](https://github.com/kubernetes-sigs/node-feature-discovery-operator)
+is recommended to be done via
+[operatorhub.io](https://operatorhub.io/operator/nfd-operator).
+
+1. You need to have
+   [OLM](https://github.com/operator-framework/operator-lifecycle-manager)
+   installed. If you don't, take a look at the
+   [latest release](https://github.com/operator-framework/operator-lifecycle-manager/releases/latest)
+   for detailed instructions.
+2. Install the operator:
+```
+kubectl create -f https://operatorhub.io/install/nfd-operator.yaml
+```
+3. Create NodeFeatureDiscovery resource (in `nfd` namespace here):
+```
+cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nfd
+---
+apiVersion: nfd.kubernetes.io/v1alpha1
+kind: NodeFeatureDiscovery
+metadata:
+  name: my-nfd-deployment
+  namespace: nfd
+EOF
+```
 
 
 ### Deployment Templates
