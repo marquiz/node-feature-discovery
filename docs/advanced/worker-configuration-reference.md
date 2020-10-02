@@ -2,7 +2,7 @@
 title: "Worker Config Reference"
 layout: default
 parent: Advanced
-nav_order: 5
+sort: 5
 published: false
 ---
 

@@ -1,8 +1,7 @@
 ---
 title: "Quick Start"
 layout: default
-parent: Get started
-nav_order: 2
+sort: 2
 ---
 
 # Quick Start

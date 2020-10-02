@@ -1,8 +1,7 @@
 ---
 title: "Master Cmdline Reference"
 layout: default
-parent: Advanced
-nav_order: 3
+sort: 2
 ---
 
 # NFD-Master Commandline Flags

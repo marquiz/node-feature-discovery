@@ -1,8 +1,7 @@
 ---
 title: "Deployment and Usage"
 layout: default
-parent: Get started
-nav_order: 3
+sort: 3
 ---
 
 # Deployment and Usage

@@ -1,7 +1,8 @@
 ---
 title: "Contributing"
 layout: default
-nav_order: 3
+sort: 3
+show_sorted: false
 ---
 
 # Contributing

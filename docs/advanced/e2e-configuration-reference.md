@@ -1,8 +1,6 @@
 ---
 title: "E2E-Test Config Reference"
 layout: default
-parent: Advanced
-nav_order: 6
 published: false
 ---
 

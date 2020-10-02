@@ -1,8 +1,6 @@
 ---
 title: "Customization Guide"
 layout: default
-parent: Advanced
-nav_order: 7
 published: false
 ---
 

@@ -1,8 +1,7 @@
 ---
 title: "Examples and Demos"
 layout: default
-parent: Get started
-nav_order: 5
+sort: 5
 ---
 
 # Examples And Demos

@@ -1,8 +1,7 @@
 ---
 title: "Advanced"
 layout: default
-nav_order: 2
-has_children: true
+sort: 2
 ---
 
 # Advanced

@@ -1,8 +1,7 @@
 ---
 title: "Developer Guide"
 layout: default
-parent: Advanced
-nav_order: 1
+sort: 1
 ---
 
 # Developer Guide

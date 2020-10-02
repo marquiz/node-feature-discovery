@@ -1,8 +1,7 @@
 ---
 title: "Introduction"
 layout: default
-parent: Get started
-nav_order: 1
+sort: 1
 ---
 
 # Introduction
