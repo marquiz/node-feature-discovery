@@ -1,10 +1,8 @@
 ---
 title: "E2E-Test Config Reference"
-layout: default
-published: false
+weight: 7
+draft: true
 ---
-
-# End-to-End Test Configuration File Reference
 
 ***WORK IN PROGRESS***
 

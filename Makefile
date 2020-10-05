@@ -10,12 +10,8 @@ IMAGE_PUSH_CMD ?= docker push
 IMAGE_RUN_CMD ?= docker run
 
 # Docker base command for working with html documentation.
-# Use host networking because 'jekyll serve' is stupid enough to use the
-# same site url than the "host" it binds to. Thus, all the links will be
-# broken if we'd bind to 0.0.0.0
-JEKYLL_VERSION := 3.8
-SITE_BUILD_CMD := $(IMAGE_RUN_CMD) --rm -it -u "`id -u`:`id -g`" --volume="$$PWD/docs:/srv/jekyll" --volume="$$PWD/docs/vendor/bundle:/usr/local/bundle" --network=host jekyll/jekyll:$(JEKYLL_VERSION)
-
+HUGO_VERSION := 0.74
+SITE_BUILD_CMD := $(IMAGE_RUN_CMD) --rm -it -u "`id -u`:`id -g`" --volume="$$PWD/docs:/src" -p 1313:1313 jojomi/hugo:$(HUGO_VERSION)
 
 VERSION := $(shell git describe --tags --dirty --always)
 
@@ -116,9 +112,7 @@ poll-image:
 	fi;
 
 site-build:
-	@mkdir -p docs/vendor/bundle
-	$(SITE_BUILD_CMD) sh -c "bundle install && jekyll build"
+	$(SITE_BUILD_CMD) hugo -d _site
 
 site-serve:
-	@mkdir -p docs/vendor/bundle
-	$(SITE_BUILD_CMD) sh -c "bundle install && jekyll serve -H 127.0.0.1 -b /"
+	$(SITE_BUILD_CMD) hugo server --bind=0.0.0.0 -d _site

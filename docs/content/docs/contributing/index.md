@@ -2,11 +2,6 @@
 title: "Contributing"
 layout: default
 sort: 3
-show_sorted: false
----
-
-# Contributing
-
 ---
 
 ## Community

@@ -1,18 +1,7 @@
 ---
 title: "Customization Guide"
-layout: default
-published: false
----
-
-# Customization Guide
-{: .no_toc }
-
-## Table of Contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+weight: 2
+draft: true
 ---
 
 ***WORK IN PROGRESS***

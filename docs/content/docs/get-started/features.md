@@ -1,18 +1,6 @@
 ---
 title: "Feature Discovery"
-layout: default
-sort: 4
----
-
-# Feature Discovery
-{: .no_toc }
-
-## Table of Contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+weight: 4
 ---
 
 Feature discovery in nfd-worker is performed by a set of separate modules

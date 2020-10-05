@@ -1,10 +1,7 @@
 ---
 title: "Quick Start"
-layout: default
-sort: 2
+weight: 2
 ---
-
-# Quick Start
 
 Minimal steps to deploy latest released version of NFD in your cluster.
 

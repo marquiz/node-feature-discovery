@@ -1,18 +1,7 @@
 ---
 title: "Architecture"
-layout: default
-published: false
----
-
-# Architecture
-{: .no_toc }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+weight: 3
+draft: true
 ---
 
 ***WORK IN PROGRESS***

@@ -1,9 +1,7 @@
 ---
 title: "Get started"
-layout: default
-sort: 1
+weight: 1
 ---
-# Node Feature Discovery
 
 Welcome to Node Feature Discovery -- a Kubernetes add-on for detecting hardware
 features and system configuration!

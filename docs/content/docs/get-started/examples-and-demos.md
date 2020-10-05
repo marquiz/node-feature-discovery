@@ -1,18 +1,6 @@
 ---
 title: "Examples and Demos"
-layout: default
-sort: 5
----
-
-# Examples And Demos
-{: .no_toc }
-
-## Table of Contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+weight: 5
 ---
 
 This page contains usage examples and demos.

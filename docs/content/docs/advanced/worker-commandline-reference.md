@@ -1,18 +1,7 @@
 ---
-title: "Worker Cmdline Reference"
-layout: default
-sort: 3
----
-
-# NFD-Worker Commandline Flags
-{: .no_toc }
-
-## Table of Contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+title: "NFD-Worker Commandline Flags"
+linkTitle: "Worker Cmdline Reference"
+weight: 5
 ---
 
 To quickly view available command line flags execute `nfd-worker --help`.

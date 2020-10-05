@@ -1,18 +1,6 @@
 ---
 title: "Developer Guide"
-layout: default
-sort: 1
----
-
-# Developer Guide
-{: .no_toc }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+weight: 1
 ---
 
 ## Building from Source

@@ -1,18 +1,6 @@
 ---
 title: "Deployment and Usage"
-layout: default
-sort: 3
----
-
-# Deployment and Usage
-{: .no_toc }
-
-## Table of Contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+weight: 3
 ---
 
 ### Requirements

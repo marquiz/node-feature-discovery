@@ -1,0 +1,5 @@
+baseURL = "/"
+title = "Node Feature Discovery"
+theme = "docsy"
+
+contentDir = "content"

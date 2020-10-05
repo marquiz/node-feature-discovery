@@ -1,18 +1,6 @@
 ---
 title: "Introduction"
-layout: default
-sort: 1
----
-
-# Introduction
-{: .no_toc }
-
-## Table of Contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+weight: 1
 ---
 
 This software enables node feature discovery for Kubernetes. It detects
