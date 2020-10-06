@@ -3,3 +3,15 @@ title = "Node Feature Discovery"
 theme = "docsy"
 
 contentDir = "content"
+
+[params]
+version_menu = "Versions"
+url_latest_version = "https://kubernetes-sigsgithub.io/node-feature-discovery/v0.6.0"
+
+[[params.versions]]
+  version = "master"
+  url = "/docs"
+
+[[params.versions]]
+  version = "v0.6.0"
+  url = "https://kubernetes-sigsgithub.io/node-feature-discovery/v0.6.0"
