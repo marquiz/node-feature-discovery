@@ -1,7 +1,9 @@
 ---
 name: Support Request
 about: Support request or question relating to Node Feature Discovery
-labels: kind/support
+title: ''
+labels: ''
+assignees: ''
 
 ---
 
