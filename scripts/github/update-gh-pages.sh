@@ -150,7 +150,7 @@ fi
 site_subdir=${site_subdir:-master}
 
 # Check if this ref is for a released version
-if [ "$site_subdir" != "master" ]; then
+if [ "$site_subdir" != "documentation-debug" ]; then
     _base_tag=`git describe --abbrev=0 || :`
     case "$_base_tag" in
         $site_subdir*)
