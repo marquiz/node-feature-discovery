@@ -168,7 +168,8 @@ echo "Updating site subdir: '$site_subdir'"
 export SITE_DESTDIR="_site/$site_subdir"
 export SITE_BASEURL="/node-feature-discovery/$site_subdir"
 export JEKYLL_ENV=production
-make site-build
+#make site-build
+echo "DEBUG: skipping documentation build..."
 
 #
 # Update gh-pages branch
