@@ -46,7 +46,8 @@ func (s *systemSource) Name() string { return "system" }
 // Priority method of the LabelSource interface
 func (s *systemSource) Priority() int { return 0 }
 
-func (s *systemSource) Discover() (source.FeatureLabels, error) {
+// GetLabels method of the LabelSource interface
+func (s *systemSource) GetLabels() (source.FeatureLabels, error) {
 	features := source.FeatureLabels{}
 
 	release, err := parseOSRelease()
