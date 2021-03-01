@@ -26,12 +26,18 @@ type Source interface {
 	Name() string
 }
 
+// FeatureSource is an interface for discovering node features
+type FeatureSource interface {
+	// Discover does feature discovery
+	Discover() error
+}
+
 // LabelSource represents a source of node feature labels
 type LabelSource interface {
 	Source
 
-	// Discover returns discovered feature labels
-	Discover() (FeatureLabels, error)
+	// GetLabels returns discovered feature labels
+	GetLabels() (FeatureLabels, error)
 
 	// Priority returns the priority of the source
 	Priority() int
@@ -78,6 +84,17 @@ func Register(s Source) {
 		panic(fmt.Sprintf("source %q already registered", name))
 	}
 	sources[s.Name()] = s
+}
+
+// GetAllFeatureSources returns all registered label sources
+func GetAllFeatureSources() map[string]FeatureSource {
+	all := make(map[string]FeatureSource)
+	for k, v := range sources {
+		if s, ok := v.(FeatureSource); ok {
+			all[k] = s
+		}
+	}
+	return all
 }
 
 // GetLabelSource a registered label source
