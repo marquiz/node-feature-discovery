@@ -113,10 +113,10 @@ type nfdWorker struct {
 	client         pb.LabelerClient
 	configFilePath string
 	config         *NFDConfig
-	realSources    []source.FeatureSource
+	realSources    []source.LabelSource
 	stop           chan struct{} // channel for signaling stop
-	testSources    []source.FeatureSource
-	enabledSources []source.FeatureSource
+	testSources    []source.LabelSource
+	enabledSources []source.LabelSource
 }
 
 type duration struct {
@@ -128,7 +128,7 @@ func NewNfdWorker(args *Args) (NfdWorker, error) {
 	nfd := &nfdWorker{
 		args:   *args,
 		config: &NFDConfig{},
-		realSources: []source.FeatureSource{
+		realSources: []source.LabelSource{
 			&cpu.Source{},
 			&iommu.Source{},
 			&kernel.Source{},
@@ -143,7 +143,7 @@ func NewNfdWorker(args *Args) (NfdWorker, error) {
 			// labels from other sources
 			&local.Source{},
 		},
-		testSources: []source.FeatureSource{
+		testSources: []source.LabelSource{
 			&fake.Source{},
 		},
 		stop: make(chan struct{}, 1),
@@ -372,7 +372,7 @@ func (w *nfdWorker) configureCore(c coreConfig) error {
 		sourceList[strings.TrimSpace(s)] = struct{}{}
 	}
 
-	w.enabledSources = []source.FeatureSource{}
+	w.enabledSources = []source.LabelSource{}
 	for _, s := range w.realSources {
 		if _, enabled := sourceList[s.Name()]; all || enabled {
 			w.enabledSources = append(w.enabledSources, s)
@@ -461,7 +461,7 @@ func (w *nfdWorker) configure(filepath string, overrides string) error {
 
 // createFeatureLabels returns the set of feature labels from the enabled
 // sources and the whitelist argument.
-func createFeatureLabels(sources []source.FeatureSource, labelWhiteList regexp.Regexp) (labels Labels) {
+func createFeatureLabels(sources []source.LabelSource, labelWhiteList regexp.Regexp) (labels Labels) {
 	labels = Labels{}
 
 	// Do feature discovery from all configured sources.
@@ -484,7 +484,7 @@ func createFeatureLabels(sources []source.FeatureSource, labelWhiteList regexp.R
 
 // getFeatureLabels returns node labels for features discovered by the
 // supplied source.
-func getFeatureLabels(source source.FeatureSource, labelWhiteList regexp.Regexp) (labels Labels, err error) {
+func getFeatureLabels(source source.LabelSource, labelWhiteList regexp.Regexp) (labels Labels, err error) {
 	labels = Labels{}
 	features, err := source.Discover()
 	if err != nil {

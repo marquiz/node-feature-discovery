@@ -23,22 +23,22 @@ import (
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
-// Implement FeatureSource interface
+// Implement LabelSource interface
 type Source struct{}
 
 func (s Source) Name() string { return "iommu" }
 
-// NewConfig method of the FeatureSource interface
+// NewConfig method of the LabelSource interface
 func (s *Source) NewConfig() source.Config { return nil }
 
-// GetConfig method of the FeatureSource interface
+// GetConfig method of the LabelSource interface
 func (s *Source) GetConfig() source.Config { return nil }
 
-// SetConfig method of the FeatureSource interface
+// SetConfig method of the LabelSource interface
 func (s *Source) SetConfig(source.Config) {}
 
-func (s Source) Discover() (source.Features, error) {
-	features := source.Features{}
+func (s Source) Discover() (source.FeatureLabels, error) {
+	features := source.FeatureLabels{}
 
 	// Check if any iommu devices are available
 	devices, err := ioutil.ReadDir(source.SysfsDir.Path("class/iommu/"))
