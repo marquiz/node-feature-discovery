@@ -39,22 +39,29 @@ func newDefaultConfig() *Config {
 	}
 }
 
-// Implement LabelSource interface
-type Source struct {
+// pciSource implements the LabelSource and ConfigurableSource interfaces
+type pciSource struct {
 	config *Config
 }
 
+// Singleton source instance
+var (
+	src pciSource
+	_   source.LabelSource        = &src
+	_   source.ConfigurableSource = &src
+)
+
 // Return name of the feature source
-func (s Source) Name() string { return "pci" }
+func (s *pciSource) Name() string { return "pci" }
 
 // NewConfig method of the LabelSource interface
-func (s *Source) NewConfig() source.Config { return newDefaultConfig() }
+func (s *pciSource) NewConfig() source.Config { return newDefaultConfig() }
 
 // GetConfig method of the LabelSource interface
-func (s *Source) GetConfig() source.Config { return s.config }
+func (s *pciSource) GetConfig() source.Config { return s.config }
 
 // SetConfig method of the LabelSource interface
-func (s *Source) SetConfig(conf source.Config) {
+func (s *pciSource) SetConfig(conf source.Config) {
 	switch v := conf.(type) {
 	case *Config:
 		s.config = v
@@ -63,8 +70,11 @@ func (s *Source) SetConfig(conf source.Config) {
 	}
 }
 
+// Priority method of the LabelSource interface
+func (s *pciSource) Priority() int { return 0 }
+
 // Discover features
-func (s Source) Discover() (source.FeatureLabels, error) {
+func (s *pciSource) Discover() (source.FeatureLabels, error) {
 	features := source.FeatureLabels{}
 
 	// Construct a device label format, a sorted list of valid attributes
@@ -129,4 +139,8 @@ func (s Source) Discover() (source.FeatureLabels, error) {
 		}
 	}
 	return features, nil
+}
+
+func init() {
+	source.Register(&src)
 }

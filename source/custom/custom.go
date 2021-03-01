@@ -49,22 +49,29 @@ func newDefaultConfig() *config {
 	return &config{}
 }
 
-// Implements LabelSource Interface
-type Source struct {
+// customSource implements the LabelSource and ConfigurableSource interfaces
+type customSource struct {
 	config *config
 }
 
+// Singleton source instance
+var (
+	src customSource
+	_   source.LabelSource        = &src
+	_   source.ConfigurableSource = &src
+)
+
 // Return name of the feature source
-func (s Source) Name() string { return "custom" }
+func (s *customSource) Name() string { return "custom" }
 
 // NewConfig method of the LabelSource interface
-func (s *Source) NewConfig() source.Config { return newDefaultConfig() }
+func (s *customSource) NewConfig() source.Config { return newDefaultConfig() }
 
 // GetConfig method of the LabelSource interface
-func (s *Source) GetConfig() source.Config { return s.config }
+func (s *customSource) GetConfig() source.Config { return s.config }
 
 // SetConfig method of the LabelSource interface
-func (s *Source) SetConfig(conf source.Config) {
+func (s *customSource) SetConfig(conf source.Config) {
 	switch v := conf.(type) {
 	case *config:
 		s.config = v
@@ -73,8 +80,11 @@ func (s *Source) SetConfig(conf source.Config) {
 	}
 }
 
+// Priority method of the LabelSource interface
+func (s *customSource) Priority() int { return 10 }
+
 // Discover features
-func (s Source) Discover() (source.FeatureLabels, error) {
+func (s *customSource) Discover() (source.FeatureLabels, error) {
 	features := source.FeatureLabels{}
 	allFeatureConfig := append(getStaticFeatureConfig(), *s.config...)
 	allFeatureConfig = append(allFeatureConfig, getDirectoryFeatureConfig()...)
@@ -99,7 +109,7 @@ func (s Source) Discover() (source.FeatureLabels, error) {
 
 // Process a single feature by Matching on the defined rules.
 // A feature is present if all defined Rules in a MatchRule return a match.
-func (s Source) discoverFeature(feature FeatureSpec) (bool, error) {
+func (s *customSource) discoverFeature(feature FeatureSpec) (bool, error) {
 	for _, matchRules := range feature.MatchOn {
 
 		allRules := []rules.Rule{
@@ -133,4 +143,8 @@ func (s Source) discoverFeature(feature FeatureSpec) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func init() {
+	source.Register(&src)
 }
