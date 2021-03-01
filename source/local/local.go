@@ -38,21 +38,23 @@ var (
 	hookDir         = "/etc/kubernetes/node-feature-discovery/source.d/"
 )
 
-// Source implements LabelSource.
-type Source struct{}
+// localSource implements the LabelSource interface.
+type localSource struct{}
 
-func (s Source) Name() string { return Name }
+// Singleton source instance
+var (
+	src localSource
+	_   source.LabelSource = &src
+)
 
-// NewConfig method of the LabelSource interface
-func (s *Source) NewConfig() source.Config { return nil }
+// Name method of the LabelSource interface
+func (s *localSource) Name() string { return Name }
 
-// GetConfig method of the LabelSource interface
-func (s *Source) GetConfig() source.Config { return nil }
+// Priority method of the LabelSource interface
+func (s *localSource) Priority() int { return 20 }
 
-// SetConfig method of the LabelSource interface
-func (s *Source) SetConfig(source.Config) {}
-
-func (s Source) Discover() (source.FeatureLabels, error) {
+// Discover method of the LabelSource interface
+func (s *localSource) Discover() (source.FeatureLabels, error) {
 	featuresFromHooks, err := getFeaturesFromHooks()
 	if err != nil {
 		klog.Error(err)
@@ -237,4 +239,8 @@ func getFileContent(fileName string) ([][]byte, error) {
 	}
 
 	return lines, nil
+}
+
+func init() {
+	source.Register(&src)
 }
