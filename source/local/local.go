@@ -38,21 +38,21 @@ var (
 	hookDir         = "/etc/kubernetes/node-feature-discovery/source.d/"
 )
 
-// Implement FeatureSource interface
+// Source implements LabelSource.
 type Source struct{}
 
 func (s Source) Name() string { return Name }
 
-// NewConfig method of the FeatureSource interface
+// NewConfig method of the LabelSource interface
 func (s *Source) NewConfig() source.Config { return nil }
 
-// GetConfig method of the FeatureSource interface
+// GetConfig method of the LabelSource interface
 func (s *Source) GetConfig() source.Config { return nil }
 
-// SetConfig method of the FeatureSource interface
+// SetConfig method of the LabelSource interface
 func (s *Source) SetConfig(source.Config) {}
 
-func (s Source) Discover() (source.Features, error) {
+func (s Source) Discover() (source.FeatureLabels, error) {
 	featuresFromHooks, err := getFeaturesFromHooks()
 	if err != nil {
 		klog.Error(err)
@@ -75,8 +75,8 @@ func (s Source) Discover() (source.Features, error) {
 	return featuresFromFiles, nil
 }
 
-func parseFeatures(lines [][]byte, prefix string) source.Features {
-	features := source.Features{}
+func parseFeatures(lines [][]byte, prefix string) source.FeatureLabels {
+	features := source.FeatureLabels{}
 
 	for _, line := range lines {
 		if len(line) > 0 {
@@ -107,8 +107,8 @@ func parseFeatures(lines [][]byte, prefix string) source.Features {
 }
 
 // Run all hooks and get features
-func getFeaturesFromHooks() (source.Features, error) {
-	features := source.Features{}
+func getFeaturesFromHooks() (source.FeatureLabels, error) {
+	features := source.FeatureLabels{}
 
 	files, err := ioutil.ReadDir(hookDir)
 	if err != nil {
@@ -182,8 +182,8 @@ func runHook(file string) ([][]byte, error) {
 }
 
 // Read all files to get features
-func getFeaturesFromFiles() (source.Features, error) {
-	features := source.Features{}
+func getFeaturesFromFiles() (source.FeatureLabels, error) {
+	features := source.FeatureLabels{}
 
 	files, err := ioutil.ReadDir(featureFilesDir)
 	if err != nil {
