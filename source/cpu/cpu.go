@@ -21,8 +21,8 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
-	"sigs.k8s.io/node-feature-discovery/source/internal/cpuidutils"
 )
 
 // Configuration file options
@@ -33,6 +33,22 @@ type cpuidConfig struct {
 
 type Config struct {
 	Cpuid cpuidConfig `json:"cpuid,omitempty"`
+}
+
+// features contains all discovered features
+type features struct {
+	Cpuid  map[string]struct{}
+	Cstate map[string]string
+	Pstate map[string]string
+	Rdt    map[string]struct{}
+	Sst    struct {
+		BaseFrequency struct {
+			Enabled source.BoolFeatureValue
+		}
+	}
+	Topology struct {
+		HardwareMultithreading source.BoolFeatureValue
+	}
 }
 
 // newDefaultConfig returns a new config with pre-populated defaults
@@ -76,15 +92,17 @@ type keyFilter struct {
 	whitelist bool
 }
 
-// cpuSource implements the LabelSource and ConfigurableSource interfaces
+// cpuSource implements the FeatureSource, LabelSource and ConfigurableSource interfaces
 type cpuSource struct {
 	config      *Config
 	cpuidFilter *keyFilter
+	features    *features
 }
 
 // Singleton source instance
 var (
 	src cpuSource
+	_   source.FeatureSource      = &src
 	_   source.LabelSource        = &src
 	_   source.ConfigurableSource = &src
 )
@@ -113,46 +131,53 @@ func (s *cpuSource) Priority() int { return 0 }
 
 // GetLabels method of the LabelSource interface
 func (s *cpuSource) GetLabels() (source.FeatureLabels, error) {
-	features := source.FeatureLabels{}
+	labels := source.FeatureLabels{}
 
-	// Check if hyper-threading seems to be enabled
-	found, err := haveThreadSiblings()
-	if err != nil {
-		klog.Errorf("failed to detect hyper-threading: %v", err)
-	} else if found {
-		features["hardware_multithreading"] = true
+	// CPUID
+	for f := range s.features.Cpuid {
+		if s.cpuidFilter.unmask(f) {
+			labels["cpuid."+f] = true
+		}
 	}
 
-	// Check SST-BF
-	found, err = discoverSSTBF()
-	if err != nil {
-		klog.Errorf("failed to detect SST-BF: %v", err)
-	} else if found {
-		features["power.sst_bf.enabled"] = true
+	// Cstate
+	for k, v := range s.features.Cstate {
+		labels["cstate."+k] = v
+	}
+
+	// Pstate
+	for k, v := range s.features.Pstate {
+		labels["pstate."+k] = v
+	}
+
+	// RDT
+	for k := range s.features.Rdt {
+		labels["rdt."+k] = true
+	}
+
+	// SST
+	if v, ok := s.features.Sst.BaseFrequency.Enabled.Get(); v && ok {
+		labels["power.sst_bf.enabled"] = true
+	}
+
+	// Hyperthreading
+	if v, ok := s.features.Topology.HardwareMultithreading.Get(); v && ok {
+		labels["hardware_multithreading"] = true
+	}
+
+	return labels, nil
+}
+
+// Discover method of the FeatureSource Interface
+func (s *cpuSource) Discover() error {
+	s.features = &features{
+		Cpuid: make(map[string]struct{}),
+		Rdt:   make(map[string]struct{}),
 	}
 
 	// Detect CPUID
-	cpuidFlags := cpuidutils.GetCpuidFlags()
-	for _, f := range cpuidFlags {
-		if s.cpuidFilter.unmask(f) {
-			features["cpuid."+f] = true
-		}
-	}
-
-	// Detect pstate features
-	pstate, err := detectPstate()
-	if err != nil {
-		klog.Error(err)
-	} else {
-		for k, v := range pstate {
-			features["pstate."+k] = v
-		}
-	}
-
-	// Detect RDT features
-	rdt := discoverRDT()
-	for _, f := range rdt {
-		features["rdt."+f] = true
+	for _, f := range getCpuidFlags() {
+		s.features.Cpuid[f] = struct{}{}
 	}
 
 	// Detect cstate configuration
@@ -160,10 +185,41 @@ func (s *cpuSource) GetLabels() (source.FeatureLabels, error) {
 	if err != nil {
 		klog.Errorf("failed to detect cstate: %v", err)
 	} else {
-		features["cstate.enabled"] = cstate
+		s.features.Cstate = cstate
 	}
 
-	return features, nil
+	// Detect pstate features
+	pstate, err := detectPstate()
+	if err != nil {
+		klog.Error(err)
+	}
+	s.features.Pstate = pstate
+
+	// Detect RDT features
+	rdt := discoverRDT()
+	for _, f := range rdt {
+		s.features.Rdt[f] = struct{}{}
+	}
+
+	// Detect SST features
+	if found, err := discoverSSTBF(); err != nil {
+		klog.Errorf("failed to detect SST-BF: %v", err)
+	} else {
+		s.features.Sst.BaseFrequency.Enabled.Set(found)
+	}
+
+	// Detect hyper-threading
+	found, err := haveThreadSiblings()
+	if err != nil {
+		klog.Errorf("failed to detect hyper-threading: %v", err)
+	} else {
+		s.features.Topology.HardwareMultithreading.Set(found)
+	}
+
+	if klog.V(3).Enabled() {
+		klog.Info("discovered cpu features:\n", utils.Dump(s.features))
+	}
+	return nil
 }
 
 // Check if any (online) CPUs have thread siblings

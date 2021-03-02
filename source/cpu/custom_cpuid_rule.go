@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2020-2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,29 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rules
+package cpu
 
-import (
-	"sigs.k8s.io/node-feature-discovery/source/internal/cpuidutils"
-)
-
-// CpuIDRule implements Rule
+// CpuIDRule implements Rule for the custom source
 type CpuIDRule []string
 
 var cpuIdFlags map[string]struct{}
 
 func (cpuids *CpuIDRule) Match() (bool, error) {
 	for _, f := range *cpuids {
-		if _, ok := cpuIdFlags[f]; !ok {
+		if _, ok := src.features.Cpuid[f]; !ok {
 			return false, nil
 		}
 	}
 	return true, nil
-}
-
-func init() {
-	cpuIdFlags = make(map[string]struct{})
-	for _, f := range cpuidutils.GetCpuidFlags() {
-		cpuIdFlags[f] = struct{}{}
-	}
 }

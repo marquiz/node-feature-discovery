@@ -23,6 +23,7 @@ import (
 
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
+	"sigs.k8s.io/node-feature-discovery/source/cpu"
 	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
 	"sigs.k8s.io/node-feature-discovery/source/kernel"
 )
@@ -32,7 +33,7 @@ type MatchRule struct {
 	PciID      *rules.PciIDRule      `json:"pciId,omitempty"`
 	UsbID      *rules.UsbIDRule      `json:"usbId,omitempty"`
 	LoadedKMod *rules.LoadedKModRule `json:"loadedKMod,omitempty"`
-	CpuID      *rules.CpuIDRule      `json:"cpuId,omitempty"`
+	CpuID      *cpu.CpuIDRule        `json:"cpuId,omitempty"`
 	Kconfig    *kernel.KconfigRule   `json:"kConfig,omitempty"`
 	Nodename   *rules.NodenameRule   `json:"nodename,omitempty"`
 }
