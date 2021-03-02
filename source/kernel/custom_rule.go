@@ -17,6 +17,8 @@ limitations under the License.
 package kernel
 
 import (
+	"encoding/json"
+
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/node-feature-discovery/source"
@@ -52,4 +54,13 @@ func (r *CustomRule) Match() (bool, error) {
 		return m, err
 	}
 	return true, nil
+}
+
+func NewCustomRule(ruleConfig []byte) (source.CustomRule, error) {
+	r := new(CustomRule)
+	return r, json.Unmarshal(ruleConfig, r)
+}
+
+func init() {
+	source.RegisterCustomRule("kernel", NewCustomRule)
 }

@@ -17,6 +17,8 @@ limitations under the License.
 package usb
 
 import (
+	"encoding/json"
+
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
@@ -37,4 +39,13 @@ func (r *UsbIDRule) Match() (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func NewUsbIDRule(ruleConfig []byte) (source.CustomRule, error) {
+	r := new(UsbIDRule)
+	return r, json.Unmarshal(ruleConfig, r)
+}
+
+func init() {
+	source.RegisterCustomRule("usbId", NewUsbIDRule)
 }

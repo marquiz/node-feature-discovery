@@ -43,3 +43,12 @@ func (r *NodenameRule) UnmarshalJSON(data []byte) error {
 	}
 	return nil
 }
+
+func NewNodenameRule(ruleConfig []byte) (source.CustomRule, error) {
+	r := new(NodenameRule)
+	return r, json.Unmarshal(ruleConfig, r)
+}
+
+func init() {
+	source.RegisterCustomRule("nodename", NewNodenameRule)
+}

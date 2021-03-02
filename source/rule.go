@@ -31,6 +31,20 @@ type CustomRule interface {
 	Match() (bool, error)
 }
 
+type NewRuleFn func(config []byte) (CustomRule, error)
+
+var rules = make(map[string]NewRuleFn)
+
+// RegisterCustomRule registers a custom rule type
+func RegisterCustomRule(name string, newFn NewRuleFn) error {
+	name = strings.ToLower(name)
+	if _, ok := rules[name]; ok {
+		panic(fmt.Sprintf("custom rule %q already registered", name))
+	}
+	rules[name] = newFn
+	return nil
+}
+
 type MatchExpression struct {
 	Op    MatchOp
 	Value MatchValue `json:",omitempty"`
@@ -239,6 +253,7 @@ func (m *MatchExpression) UnmarshalJSON(data []byte) error {
 		}
 		*m = *NewMatchExpression(MatchIn, values...)
 	case map[string]interface{}:
+		// We need to use the helper type in order to avoid (infinite) recursion
 		helper := &matchExpression{}
 		if err := json.Unmarshal(data, &helper); err != nil {
 			return err

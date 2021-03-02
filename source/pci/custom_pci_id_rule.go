@@ -17,6 +17,8 @@ limitations under the License.
 package pci
 
 import (
+	"encoding/json"
+
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
@@ -37,4 +39,13 @@ func (r *PciIDRule) Match() (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func NewPciIDRule(ruleConfig []byte) (source.CustomRule, error) {
+	r := new(PciIDRule)
+	return r, json.Unmarshal(ruleConfig, r)
+}
+
+func init() {
+	source.RegisterCustomRule("pciId", NewPciIDRule)
 }

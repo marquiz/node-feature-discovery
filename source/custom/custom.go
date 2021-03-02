@@ -17,38 +17,16 @@ limitations under the License.
 package custom
 
 import (
-	"reflect"
-
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
-	"sigs.k8s.io/node-feature-discovery/source/cpu"
-	"sigs.k8s.io/node-feature-discovery/source/kernel"
-	"sigs.k8s.io/node-feature-discovery/source/local"
-	"sigs.k8s.io/node-feature-discovery/source/pci"
-	"sigs.k8s.io/node-feature-discovery/source/system"
-	"sigs.k8s.io/node-feature-discovery/source/usb"
 )
 
-// Custom Features Configurations
-type MatchRule struct {
-	PciID      *pci.PciIDRule         `json:"pciId,omitempty"`
-	UsbID      *usb.UsbIDRule         `json:"usbId,omitempty"`
-	LoadedKMod *kernel.LoadedKModRule `json:"loadedKMod,omitempty"`
-	CpuID      *cpu.CpuIDRule         `json:"cpuId,omitempty"`
-	Kconfig    *kernel.KconfigRule    `json:"kConfig,omitempty"`
-	Nodename   *system.NodenameRule   `json:"nodename,omitempty"`
-	CPU        *cpu.CustomRule        `json:"cpu,omitempty"`
-	Kernel     *kernel.CustomRule     `json:"kernel,omitempty"`
-	Local      *local.CustomRule      `json:"local,omitempty"`
-	System     *system.CustomRule     `json:"system,omitempty"`
-}
-
 type FeatureSpec struct {
-	Name    string      `json:"name"`
-	Value   *string     `json:"value,omitempty"`
-	MatchOn []MatchRule `json:"matchOn"`
+	Name    string                 `json:"name"`
+	Value   *string                `json:"value,omitempty"`
+	MatchOn []source.CustomRuleSet `json:"matchOn"`
 }
 
 type config []FeatureSpec
@@ -118,28 +96,11 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 
 // Process a single feature by Matching on the defined rules.
 // A feature is present if all defined Rules in a MatchRule return a match.
-func (s *customSource) discoverFeature(feature FeatureSpec) (bool, error) {
-	for _, matchRules := range feature.MatchOn {
-
-		allRules := []source.CustomRule{
-			matchRules.PciID,
-			matchRules.UsbID,
-			matchRules.LoadedKMod,
-			matchRules.CpuID,
-			matchRules.Kconfig,
-			matchRules.Nodename,
-			matchRules.CPU,
-			matchRules.Kernel,
-			matchRules.Local,
-			matchRules.System,
-		}
-
+func (s customSource) discoverFeature(feature FeatureSpec) (bool, error) {
+	for _, rules := range feature.MatchOn {
 		// return true, nil if all rules match
-		matchRules := func(rules []source.CustomRule) (bool, error) {
-			for _, rule := range rules {
-				if reflect.ValueOf(rule).IsNil() {
-					continue
-				}
+		matchRules := func(rs source.CustomRuleSet) (bool, error) {
+			for _, rule := range rs {
 				if match, err := rule.Match(); err != nil {
 					return false, err
 				} else if !match {
@@ -149,7 +110,7 @@ func (s *customSource) discoverFeature(feature FeatureSpec) (bool, error) {
 			return true, nil
 		}
 
-		if match, err := matchRules(allRules); err != nil {
+		if match, err := matchRules(rules); err != nil {
 			return false, err
 		} else if match {
 			return true, nil

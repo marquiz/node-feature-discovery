@@ -17,6 +17,8 @@ limitations under the License.
 package cpu
 
 import (
+	"encoding/json"
+
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
@@ -27,4 +29,13 @@ type CpuIDRule struct {
 
 func (r *CpuIDRule) Match() (bool, error) {
 	return r.MatchKeys(src.features.Cpuid)
+}
+
+func NewCpuIDRule(ruleConfig []byte) (source.CustomRule, error) {
+	r := new(CpuIDRule)
+	return r, json.Unmarshal(ruleConfig, r)
+}
+
+func init() {
+	source.RegisterCustomRule("cpuId", NewCpuIDRule)
 }

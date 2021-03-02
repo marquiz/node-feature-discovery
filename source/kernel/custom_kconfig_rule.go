@@ -17,6 +17,8 @@ limitations under the License.
 package kernel
 
 import (
+	"encoding/json"
+
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
@@ -27,4 +29,13 @@ type KconfigRule struct {
 
 func (r *KconfigRule) Match() (bool, error) {
 	return r.MatchValues(src.features.Config)
+}
+
+func NewKconfigRule(ruleConfig []byte) (source.CustomRule, error) {
+	r := new(KconfigRule)
+	return r, json.Unmarshal(ruleConfig, r)
+}
+
+func init() {
+	source.RegisterCustomRule("kConfig", NewKconfigRule)
 }

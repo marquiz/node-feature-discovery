@@ -17,6 +17,8 @@ limitations under the License.
 package kernel
 
 import (
+	"encoding/json"
+
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
@@ -28,4 +30,13 @@ type LoadedKModRule struct {
 // Match loaded kernel modules on provided list of kernel modules
 func (r *LoadedKModRule) Match() (bool, error) {
 	return r.MatchKeys(src.features.LoadedModules)
+}
+
+func NewLoadedKModRule(ruleConfig []byte) (source.CustomRule, error) {
+	r := new(LoadedKModRule)
+	return r, json.Unmarshal(ruleConfig, r)
+}
+
+func init() {
+	source.RegisterCustomRule("loadedKMod", NewLoadedKModRule)
 }
