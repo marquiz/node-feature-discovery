@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cpuidutils
+package cpu
 
 import (
 	"github.com/klauspost/cpuid/v2"
 )
 
 // Discover returns feature names for all the supported CPU features.
-func GetCpuidFlags() []string {
+func getCpuidFlags() []string {
 	return cpuid.CPU.FeatureSet()
 }
