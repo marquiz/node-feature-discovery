@@ -18,6 +18,8 @@ package source
 
 import (
 	"fmt"
+
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 )
 
 // Source is the base interface for all other source interfaces
@@ -30,6 +32,9 @@ type Source interface {
 type FeatureSource interface {
 	// Discover does feature discovery
 	Discover() error
+
+	// GetFeatures returns discovered features in raw form
+	GetFeatures() *feature.DomainFeatures
 }
 
 // LabelSource represents a source of node feature labels
