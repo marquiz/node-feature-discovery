@@ -17,13 +17,10 @@ limitations under the License.
 package kernel
 
 import (
-	"regexp"
-	"strings"
-
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
-	"sigs.k8s.io/node-feature-discovery/source/internal/kernelutils"
 )
 
 // Configuration file options
@@ -45,14 +42,24 @@ func newDefaultConfig() *Config {
 	}
 }
 
-// kernelSource implements the LabelSource and ConfigurableSource interfaces
+type features struct {
+	Config  map[string]string
+	Selinux struct {
+		Enabled source.BoolFeatureValue
+	}
+	Version map[string]string
+}
+
+// kernelSource implements the FeatureSource, LabelSource and ConfigurableSource interfaces
 type kernelSource struct {
-	config *Config
+	config   *Config
+	features *features
 }
 
 // Singleton source instance
 var (
 	src kernelSource
+	_   source.FeatureSource      = &src
 	_   source.LabelSource        = &src
 	_   source.ConfigurableSource = &src
 )
@@ -80,69 +87,61 @@ func (s *kernelSource) Priority() int { return 0 }
 
 // GetLabels method of the LabelSource interface
 func (s *kernelSource) GetLabels() (source.FeatureLabels, error) {
-	features := source.FeatureLabels{}
+	labels := source.FeatureLabels{}
 
-	// Read kernel version
-	version, err := parseVersion()
-	if err != nil {
-		klog.Errorf("failed to get kernel version: %s", err)
-	} else {
-		for key := range version {
-			features["version."+key] = version[key]
-		}
-	}
-
-	// Read kconfig
-	kconfig, err := kernelutils.ParseKconfig(s.config.KconfigFile)
-	if err != nil {
-		klog.Errorf("failed to read kconfig: %s", err)
+	for k, v := range s.features.Version {
+		labels["version."+k] = v
 	}
 
 	// Check flags
 	for _, opt := range s.config.ConfigOpts {
-		if val, ok := kconfig[opt]; ok {
-			features["config."+opt] = val
+		if val, ok := s.features.Config[opt]; ok {
+			labels["config."+opt] = val
 		}
 	}
 
-	selinux, err := SelinuxEnabled()
-	if err != nil {
-		klog.Warning(err)
-	} else if selinux {
-		features["selinux.enabled"] = true
+	if v, ok := s.features.Selinux.Enabled.Get(); v && ok {
+		labels["selinux.enabled"] = true
 	}
 
-	return features, nil
+	return labels, nil
 }
 
-// Read and parse kernel version
-func parseVersion() (map[string]string, error) {
-	version := map[string]string{}
-
-	full, err := kernelutils.GetKernelVersion()
-	if err != nil {
-		return nil, err
+// Discover method of the FeatureSource interface
+func (s *kernelSource) Discover() error {
+	s.features = &features{
+		Config:  make(map[string]string),
+		Version: make(map[string]string),
 	}
 
-	// Replace forbidden symbols
-	fullRegex := regexp.MustCompile("[^-A-Za-z0-9_.]")
-	full = fullRegex.ReplaceAllString(full, "_")
-	// Label values must start and end with an alphanumeric
-	full = strings.Trim(full, "-_.")
-
-	version["full"] = full
-
-	// Regexp for parsing version components
-	re := regexp.MustCompile(`^(?P<major>\d+)(\.(?P<minor>\d+))?(\.(?P<revision>\d+))?(-.*)?$`)
-	if m := re.FindStringSubmatch(full); m != nil {
-		for i, name := range re.SubexpNames() {
-			if i != 0 && name != "" {
-				version[name] = m[i]
-			}
-		}
+	// Read kernel version
+	if version, err := parseVersion(); err != nil {
+		klog.Errorf("failed to get kernel version: %s", err)
+	} else {
+		s.features.Version = version
 	}
 
-	return version, nil
+	// Read kconfig
+	if kconfig, err := parseKconfig(s.config.KconfigFile); err != nil {
+		klog.Errorf("failed to read kconfig: %s", err)
+	} else {
+		s.features.Config = kconfig
+	}
+
+	if selinux, err := SelinuxEnabled(); err != nil {
+		klog.Warning(err)
+	} else {
+		s.features.Selinux.Enabled.Set(selinux)
+	}
+
+	if klog.V(3).Enabled() {
+		klog.Info("discovered kernel features:\n", utils.Dump(s.features))
+	}
+	return nil
+}
+
+func (s *kernelSource) GetFeatures() interface{} {
+	return *s.features
 }
 
 func init() {
