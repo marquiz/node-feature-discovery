@@ -18,6 +18,7 @@ package source
 
 import (
 	"fmt"
+	"strconv"
 )
 
 // Source is the base interface for all other source interfaces
@@ -119,6 +120,14 @@ func Register(s Source) {
 	sources[s.Name()] = s
 }
 
+// GetFeatureSource returns a registered FeatureSource interface
+func GetFeatureSource(name string) FeatureSource {
+	if s, ok := sources[name].(FeatureSource); ok {
+		return s
+	}
+	return nil
+}
+
 // GetAllFeatureSources returns all registered label sources
 func GetAllFeatureSources() map[string]FeatureSource {
 	all := make(map[string]FeatureSource)
@@ -166,4 +175,24 @@ func GetAllConfigurableSources() map[string]ConfigurableSource {
 		}
 	}
 	return all
+}
+
+// BoolFeatureValue is a wrapper to handle detection failures of bool features
+type BoolFeatureValue struct {
+	valid bool
+	value bool
+}
+
+// Get gets the value of BoolFeatureValue
+func (b *BoolFeatureValue) Get() (bool, bool) { return b.value, b.valid }
+
+// Get sets the value of BoolFeatureValue
+func (b *BoolFeatureValue) Set(val bool) { b.valid, b.value = true, val }
+
+// MarshalJSON  implements the Marshaler interface from "encoding/json"
+func (b *BoolFeatureValue) MarshalJSON() ([]byte, error) {
+	if b.valid {
+		return []byte(strconv.FormatBool(b.value)), nil
+	}
+	return []byte("null"), nil
 }
