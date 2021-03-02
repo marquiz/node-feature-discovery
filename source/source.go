@@ -91,6 +91,14 @@ func Register(s Source) {
 	sources[s.Name()] = s
 }
 
+// GetFeatureSource returns a registered FeatureSource interface
+func GetFeatureSource(name string) FeatureSource {
+	if s, ok := sources[name].(FeatureSource); ok {
+		return s
+	}
+	return nil
+}
+
 // GetAllFeatureSources returns all registered label sources
 func GetAllFeatureSources() map[string]FeatureSource {
 	all := make(map[string]FeatureSource)
