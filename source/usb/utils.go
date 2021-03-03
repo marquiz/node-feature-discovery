@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package busutils
+package usb
 
 import (
 	"fmt"
@@ -26,10 +26,9 @@ import (
 	"k8s.io/klog/v2"
 )
 
-type UsbDeviceInfo map[string]string
-type UsbClassMap map[string]UsbDeviceInfo
+type classMap map[string]deviceInfo
 
-var DefaultUsbDevAttrs = []string{"class", "vendor", "device"}
+var devAttrs = []string{"class", "vendor", "device"}
 
 // The USB device sysfs files do not have terribly user friendly names, map
 // these for consistency with the PCI matcher.
@@ -57,11 +56,11 @@ func readSingleUsbAttribute(devPath string, attrName string) (string, error) {
 }
 
 // Read information of one USB device
-func readUsbDevInfo(devPath string, deviceAttrSpec map[string]bool) (UsbClassMap, error) {
-	classmap := UsbClassMap{}
-	info := UsbDeviceInfo{}
+func readUsbDevInfo(devPath string) (classMap, error) {
+	classmap := classMap{}
+	info := deviceInfo{}
 
-	for attr := range deviceAttrSpec {
+	for _, attr := range devAttrs {
 		attrVal, _ := readSingleUsbAttribute(devPath, attr)
 		if len(attrVal) > 0 {
 			info[attr] = attrVal
@@ -88,7 +87,7 @@ func readUsbDevInfo(devPath string, deviceAttrSpec map[string]bool) (UsbClassMap
 				return classmap, err
 			}
 
-			attr := UsbDeviceInfo{}
+			attr := deviceInfo{}
 			for k, v := range info {
 				attr[k] = v
 			}
@@ -101,37 +100,30 @@ func readUsbDevInfo(devPath string, deviceAttrSpec map[string]bool) (UsbClassMap
 	return classmap, nil
 }
 
-// List available USB devices and retrieve device attributes.
-// deviceAttrSpec is a map which specifies which attributes to retrieve.
-// a false value for a specific attribute marks the attribute as optional.
-// a true value for a specific attribute marks the attribute as mandatory.
-// "class" attribute is considered mandatory.
-// DetectUsb() will fail if the retrieval of a mandatory attribute fails.
-func DetectUsb(deviceAttrSpec map[string]bool) (map[string][]UsbDeviceInfo, error) {
+// detectUsb detects available USB devices and retrieves their device attributes.
+func detectUsb() (map[deviceClass][]deviceInfo, error) {
 	// Unlike PCI, the USB sysfs interface includes entries not just for
 	// devices. We work around this by globbing anything that includes a
 	// valid product ID.
 	const devicePath = "/sys/bus/usb/devices/*/idProduct"
-	devInfo := make(map[string][]UsbDeviceInfo)
+	devInfo := make(map[deviceClass][]deviceInfo)
 
 	devices, err := filepath.Glob(devicePath)
 	if err != nil {
 		return nil, err
 	}
 
-	// "class" is a mandatory attribute, inject it to spec if needed.
-	deviceAttrSpec["class"] = true
-
 	// Iterate over devices
 	for _, device := range devices {
-		devMap, err := readUsbDevInfo(filepath.Dir(device), deviceAttrSpec)
+		devMap, err := readUsbDevInfo(filepath.Dir(device))
 		if err != nil {
 			klog.Error(err)
 			continue
 		}
 
 		for class, info := range devMap {
-			devInfo[class] = append(devInfo[class], info)
+			c := deviceClass(class)
+			devInfo[c] = append(devInfo[c], info)
 		}
 	}
 

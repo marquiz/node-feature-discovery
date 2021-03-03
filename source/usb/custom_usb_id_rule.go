@@ -14,12 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rules
-
-import (
-	"fmt"
-	usbutils "sigs.k8s.io/node-feature-discovery/source/internal"
-)
+package usb
 
 // Rule that matches on the following USB device attributes: <class, vendor, device>
 // each device attribute will be a list elements(strings).
@@ -37,16 +32,7 @@ type UsbIDRule struct {
 
 // Match USB devices on provided USB device attributes
 func (r *UsbIDRule) Match() (bool, error) {
-	devAttr := map[string]bool{}
-	for _, attr := range []string{"class", "vendor", "device"} {
-		devAttr[attr] = true
-	}
-	allDevs, err := usbutils.DetectUsb(devAttr)
-	if err != nil {
-		return false, fmt.Errorf("failed to detect USB devices: %s", err.Error())
-	}
-
-	for _, classDevs := range allDevs {
+	for _, classDevs := range src.features.Devices {
 		for _, dev := range classDevs {
 			// match rule on a single device
 			if r.matchDevOnRule(dev) {
@@ -57,7 +43,7 @@ func (r *UsbIDRule) Match() (bool, error) {
 	return false, nil
 }
 
-func (r *UsbIDRule) matchDevOnRule(dev usbutils.UsbDeviceInfo) bool {
+func (r *UsbIDRule) matchDevOnRule(dev deviceInfo) bool {
 	if len(r.Class) == 0 && len(r.Vendor) == 0 && len(r.Device) == 0 {
 		return false
 	}
