@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2020-2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,12 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rules
-
-import (
-	"fmt"
-	pciutils "sigs.k8s.io/node-feature-discovery/source/internal"
-)
+package pci
 
 // Rule that matches on the following PCI device attributes: <class, vendor, device>
 // each device attribute will be a list elements(strings).
@@ -41,12 +36,8 @@ func (r *PciIDRule) Match() (bool, error) {
 	for _, attr := range []string{"class", "vendor", "device"} {
 		devAttr[attr] = true
 	}
-	allDevs, err := pciutils.DetectPci(devAttr)
-	if err != nil {
-		return false, fmt.Errorf("failed to detect PCI devices: %s", err.Error())
-	}
 
-	for _, classDevs := range allDevs {
+	for _, classDevs := range src.features.Devices {
 		for _, dev := range classDevs {
 			// match rule on a single device
 			if r.matchDevOnRule(dev) {
@@ -57,7 +48,7 @@ func (r *PciIDRule) Match() (bool, error) {
 	return false, nil
 }
 
-func (r *PciIDRule) matchDevOnRule(dev pciutils.PciDeviceInfo) bool {
+func (r *PciIDRule) matchDevOnRule(dev deviceInfo) bool {
 	if len(r.Class) == 0 && len(r.Vendor) == 0 && len(r.Device) == 0 {
 		return false
 	}

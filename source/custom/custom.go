@@ -26,11 +26,12 @@ import (
 	"sigs.k8s.io/node-feature-discovery/source/cpu"
 	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
 	"sigs.k8s.io/node-feature-discovery/source/kernel"
+	"sigs.k8s.io/node-feature-discovery/source/pci"
 )
 
 // Custom Features Configurations
 type MatchRule struct {
-	PciID      *rules.PciIDRule      `json:"pciId,omitempty"`
+	PciID      *pci.PciIDRule        `json:"pciId,omitempty"`
 	UsbID      *rules.UsbIDRule      `json:"usbId,omitempty"`
 	LoadedKMod *rules.LoadedKModRule `json:"loadedKMod,omitempty"`
 	CpuID      *cpu.CpuIDRule        `json:"cpuId,omitempty"`

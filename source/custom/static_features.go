@@ -18,6 +18,7 @@ package custom
 
 import (
 	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
+	"sigs.k8s.io/node-feature-discovery/source/pci"
 )
 
 // getStaticFeatures returns statically configured custom features to discover
@@ -28,8 +29,8 @@ func getStaticFeatureConfig() []FeatureSpec {
 			Name: "rdma.capable",
 			MatchOn: []MatchRule{
 				MatchRule{
-					PciID: &rules.PciIDRule{
-						PciIDRuleInput: rules.PciIDRuleInput{Vendor: []string{"15b3"}},
+					PciID: &pci.PciIDRule{
+						PciIDRuleInput: pci.PciIDRuleInput{Vendor: []string{"15b3"}},
 					},
 				},
 			},

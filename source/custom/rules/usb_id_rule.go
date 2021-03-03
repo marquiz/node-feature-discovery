@@ -76,3 +76,12 @@ func (r *UsbIDRule) matchDevOnRule(dev usbutils.UsbDeviceInfo) bool {
 
 	return true
 }
+
+func in(item string, arr []string) bool {
+	for _, val := range arr {
+		if val == item {
+			return true
+		}
+	}
+	return false
+}
