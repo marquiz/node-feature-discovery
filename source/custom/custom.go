@@ -32,12 +32,12 @@ import (
 
 // Custom Features Configurations
 type MatchRule struct {
-	PciID      *pci.PciIDRule        `json:"pciId,omitempty"`
-	UsbID      *usb.UsbIDRule        `json:"usbId,omitempty"`
-	LoadedKMod *rules.LoadedKModRule `json:"loadedKMod,omitempty"`
-	CpuID      *cpu.CpuIDRule        `json:"cpuId,omitempty"`
-	Kconfig    *kernel.KconfigRule   `json:"kConfig,omitempty"`
-	Nodename   *rules.NodenameRule   `json:"nodename,omitempty"`
+	PciID      *pci.PciIDRule         `json:"pciId,omitempty"`
+	UsbID      *usb.UsbIDRule         `json:"usbId,omitempty"`
+	LoadedKMod *kernel.LoadedKModRule `json:"loadedKMod,omitempty"`
+	CpuID      *cpu.CpuIDRule         `json:"cpuId,omitempty"`
+	Kconfig    *kernel.KconfigRule    `json:"kConfig,omitempty"`
+	Nodename   *rules.NodenameRule    `json:"nodename,omitempty"`
 }
 
 type FeatureSpec struct {

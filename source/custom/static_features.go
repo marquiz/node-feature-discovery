@@ -17,7 +17,7 @@ limitations under the License.
 package custom
 
 import (
-	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
+	"sigs.k8s.io/node-feature-discovery/source/kernel"
 	"sigs.k8s.io/node-feature-discovery/source/pci"
 )
 
@@ -39,7 +39,7 @@ func getStaticFeatureConfig() []FeatureSpec {
 			Name: "rdma.available",
 			MatchOn: []MatchRule{
 				MatchRule{
-					LoadedKMod: &rules.LoadedKModRule{"ib_uverbs", "rdma_ucm"},
+					LoadedKMod: &kernel.LoadedKModRule{"ib_uverbs", "rdma_ucm"},
 				},
 			},
 		},

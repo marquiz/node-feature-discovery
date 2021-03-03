@@ -43,8 +43,9 @@ func newDefaultConfig() *Config {
 }
 
 type features struct {
-	Config  map[string]string
-	Selinux struct {
+	Config        map[string]string
+	LoadedModules map[string]struct{}
+	Selinux       struct {
 		Enabled source.BoolFeatureValue
 	}
 	Version map[string]string
@@ -110,8 +111,9 @@ func (s *kernelSource) GetLabels() (source.FeatureLabels, error) {
 // Discover method of the FeatureSource interface
 func (s *kernelSource) Discover() error {
 	s.features = &features{
-		Config:  make(map[string]string),
-		Version: make(map[string]string),
+		Config:        make(map[string]string),
+		LoadedModules: make(map[string]struct{}),
+		Version:       make(map[string]string),
 	}
 
 	// Read kernel version
@@ -126,6 +128,12 @@ func (s *kernelSource) Discover() error {
 		klog.Errorf("failed to read kconfig: %s", err)
 	} else {
 		s.features.Config = kconfig
+	}
+
+	if kmods, err := getLoadedModules(); err != nil {
+		klog.Errorf("failed to get loaded kernel modules: %v", err)
+	} else {
+		s.features.LoadedModules = kmods
 	}
 
 	if selinux, err := SelinuxEnabled(); err != nil {
