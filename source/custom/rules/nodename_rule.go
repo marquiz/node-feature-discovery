@@ -16,14 +16,13 @@ limitations under the License.
 package rules
 
 import (
-	"os"
+	"fmt"
 	"regexp"
 
 	"k8s.io/klog/v2"
-)
 
-var (
-	nodeName = os.Getenv("NODE_NAME")
+	"sigs.k8s.io/node-feature-discovery/source"
+	"sigs.k8s.io/node-feature-discovery/source/system"
 )
 
 // Rule that matches on nodenames configured in a ConfigMap
@@ -33,6 +32,11 @@ type NodenameRule []string
 var _ Rule = NodenameRule{}
 
 func (n NodenameRule) Match() (bool, error) {
+	nodeName, ok := source.GetFeatureSource("system").GetFeatures().Values[system.NameFeature].Features["nodename"]
+	if !ok {
+		return false, fmt.Errorf("node name not available")
+	}
+
 	for _, nodenamePattern := range n {
 		klog.V(1).Infof("matchNodename %s", nodenamePattern)
 		match, err := regexp.MatchString(nodenamePattern, nodeName)
