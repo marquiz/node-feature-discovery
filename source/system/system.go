@@ -24,21 +24,32 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
 var osReleaseFields = [...]string{
 	"ID",
 	"VERSION_ID",
+	"VERSION_ID.major",
+	"VERSION_ID.minor",
 }
 
-// systemSource implements the LabelSource interface
-type systemSource struct{}
+type features struct {
+	OsRelease map[string]string
+	NodeName  string
+}
+
+// systemSource implements the FeatureSource and LabelSource interfaces
+type systemSource struct {
+	features *features
+}
 
 // Singleton source instance
 var (
 	src systemSource
-	_   source.LabelSource = &src
+	_   source.FeatureSource = &src
+	_   source.LabelSource   = &src
 )
 
 func (s *systemSource) Name() string { return "system" }
@@ -48,29 +59,43 @@ func (s *systemSource) Priority() int { return 0 }
 
 // GetLabels method of the LabelSource interface
 func (s *systemSource) GetLabels() (source.FeatureLabels, error) {
-	features := source.FeatureLabels{}
+	labels := source.FeatureLabels{}
+
+	for _, key := range osReleaseFields {
+		if value, exists := s.features.OsRelease[key]; exists {
+			feature := "os_release." + key
+			labels[feature] = value
+		}
+	}
+	return labels, nil
+}
+
+// Discover method of the FeatureSource interface
+func (s *systemSource) Discover() error {
+	s.features = &features{
+		OsRelease: make(map[string]string),
+		NodeName:  os.Getenv("NODE_NAME"),
+	}
 
 	release, err := parseOSRelease()
 	if err != nil {
 		klog.Errorf("failed to get os-release: %s", err)
 	} else {
-		for _, key := range osReleaseFields {
-			if value, exists := release[key]; exists {
-				feature := "os_release." + key
-				features[feature] = value
+		s.features.OsRelease = release
 
-				if key == "VERSION_ID" {
-					versionComponents := splitVersion(value)
-					for subKey, subValue := range versionComponents {
-						if subValue != "" {
-							features[feature+"."+subKey] = subValue
-						}
-					}
+		if v, ok := release["VERSION_ID"]; ok {
+			versionComponents := splitVersion(v)
+			for subKey, subValue := range versionComponents {
+				if subValue != "" {
+					s.features.OsRelease["VERSION_ID."+subKey] = subValue
 				}
 			}
 		}
 	}
-	return features, nil
+	if klog.V(3).Enabled() {
+		klog.Info("discovered system features:\n", utils.Dump(s.features))
+	}
+	return nil
 }
 
 // Read and parse os-release file

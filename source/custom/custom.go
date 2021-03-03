@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
 	"sigs.k8s.io/node-feature-discovery/source/kernel"
 	"sigs.k8s.io/node-feature-discovery/source/pci"
+	"sigs.k8s.io/node-feature-discovery/source/system"
 	"sigs.k8s.io/node-feature-discovery/source/usb"
 )
 
@@ -37,7 +38,7 @@ type MatchRule struct {
 	LoadedKMod *kernel.LoadedKModRule `json:"loadedKMod,omitempty"`
 	CpuID      *cpu.CpuIDRule         `json:"cpuId,omitempty"`
 	Kconfig    *kernel.KconfigRule    `json:"kConfig,omitempty"`
-	Nodename   *rules.NodenameRule    `json:"nodename,omitempty"`
+	Nodename   *system.NodenameRule   `json:"nodename,omitempty"`
 }
 
 type FeatureSpec struct {
