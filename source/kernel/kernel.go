@@ -47,9 +47,10 @@ func newDefaultConfig() *Config {
 }
 
 const (
-	ConfigFeature  = "config"
-	SelinuxFeature = "selinux"
-	VersionFeature = "version"
+	ConfigFeature       = "config"
+	LoadedModuleFeature = "loadedmodule"
+	SelinuxFeature      = "selinux"
+	VersionFeature      = "version"
 )
 
 // kernelSource implements the FeatureSource, LabelSource and ConfigurableSource interfaces.
@@ -126,6 +127,12 @@ func (s *kernelSource) Discover() error {
 		klog.Errorf("failed to read kconfig: %s", err)
 	} else {
 		s.features.Values[ConfigFeature] = kconfig
+	}
+
+	if kmods, err := getLoadedModules(); err != nil {
+		klog.Errorf("failed to get loaded kernel modules: %v", err)
+	} else {
+		s.features.Keys[LoadedModuleFeature] = kmods
 	}
 
 	if selinux, err := SelinuxEnabled(); err != nil {
