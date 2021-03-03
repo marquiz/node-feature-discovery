@@ -20,18 +20,29 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
+	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
 const Name = "storage"
 
-// storageSource implements the LabelSource interface.
-type storageSource struct{}
+const (
+	DiskFeature = "disk"
+
+	DiskFeatureNonrotationalPresent = "nonrotational.present"
+)
+
+// storageSource implements the FeatureSource and LabelSource interfaces.
+type storageSource struct {
+	features *feature.DomainFeatures
+}
 
 // Singleton source instance
 var (
 	src storageSource
-	_   source.LabelSource = &src
+	_   source.FeatureSource = &src
+	_   source.LabelSource   = &src
 )
 
 // Name returns an identifier string for this feature source.
@@ -44,23 +55,47 @@ func (s *storageSource) Priority() int { return 0 }
 func (s *storageSource) GetLabels() (source.FeatureLabels, error) {
 	features := source.FeatureLabels{}
 
+	if s.features.Values[DiskFeature].Features[DiskFeatureNonrotationalPresent] == "true" {
+		features["nonrotationaldisk"] = true
+	}
+
+	return features, nil
+}
+
+// Discover method of the FeatureSource interface
+func (s *storageSource) Discover() error {
+	s.features = feature.NewDomainFeatures()
+
 	// Check if there is any non-rotational block devices attached to the node
 	blockdevices, err := ioutil.ReadDir(source.SysfsDir.Path("block"))
-	if err == nil {
-		for _, bdev := range blockdevices {
-			fname := source.SysfsDir.Path("block", bdev.Name(), "queue/rotational")
-			bytes, err := ioutil.ReadFile(fname)
-			if err != nil {
-				return nil, fmt.Errorf("can't read rotational status: %s", err.Error())
-			}
-			if bytes[0] == byte('0') {
-				// Non-rotational storage is present, add label.
-				features["nonrotationaldisk"] = true
-				break
-			}
+	if err != nil {
+		return fmt.Errorf("failed to list block devices: %w", err)
+	}
+
+	disk := feature.NewValueFeatures()
+	disk.Features[DiskFeatureNonrotationalPresent] = "false"
+	for _, bdev := range blockdevices {
+		fname := source.SysfsDir.Path("block", bdev.Name(), "queue/rotational")
+		bytes, err := ioutil.ReadFile(fname)
+		if err != nil {
+			return fmt.Errorf("can't read rotational status: %w", err)
+		}
+		if bytes[0] == byte('0') {
+			// Non-rotational storage is present, add label.
+			disk.Features[DiskFeatureNonrotationalPresent] = "true"
+			break
 		}
 	}
-	return features, nil
+	s.features.Values[DiskFeature] = *disk
+
+	utils.KlogDump(3, "discovered system features:", "  ", s.features)
+
+	return nil
+}
+
+// GetFeatures method of the FeatureSource Interface.
+func (s *storageSource) GetFeatures() *feature.DomainFeatures {
+	return s.features
 }
 
 func init() {
