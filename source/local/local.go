@@ -27,6 +27,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
@@ -36,13 +37,20 @@ var (
 	hookDir         = "/etc/kubernetes/node-feature-discovery/source.d/"
 )
 
-// localSource implements the LabelSource interface
-type localSource struct{}
+type features struct {
+	Labels map[string]string
+}
+
+// localSource implements the FeatureSource and LabelSource interfaces
+type localSource struct {
+	features *features
+}
 
 // Singleton source instance
 var (
 	src localSource
-	_   source.LabelSource = &src
+	_   source.FeatureSource = &src
+	_   source.LabelSource   = &src
 )
 
 // Name method of the LabelSource interface
@@ -53,6 +61,17 @@ func (s *localSource) Priority() int { return 20 }
 
 // GetLabels method of the LabelSource interface
 func (s *localSource) GetLabels() (source.FeatureLabels, error) {
+	labels := make(source.FeatureLabels)
+	for k, v := range s.features.Labels {
+		labels[k] = v
+	}
+	return labels, nil
+}
+
+// Discover method of the FeatureSource interface
+func (s *localSource) Discover() error {
+	s.features = &features{}
+
 	featuresFromHooks, err := getFeaturesFromHooks()
 	if err != nil {
 		klog.Error(err)
@@ -66,17 +85,21 @@ func (s *localSource) GetLabels() (source.FeatureLabels, error) {
 	// Merge features from hooks and files
 	for k, v := range featuresFromHooks {
 		if old, ok := featuresFromFiles[k]; ok {
-			klog.Warningf("overriding label '%s': value changed from '%s' to '%s'",
+			klog.Warningf("overriding '%s': value changed from '%s' to '%s'",
 				k, old, v)
 		}
 		featuresFromFiles[k] = v
 	}
+	s.features.Labels = featuresFromFiles
 
-	return featuresFromFiles, nil
+	if klog.V(3).Enabled() {
+		klog.Info("discovered local features:\n", utils.Dump(s.features))
+	}
+	return nil
 }
 
-func parseFeatures(lines [][]byte, prefix string) source.FeatureLabels {
-	features := source.FeatureLabels{}
+func parseFeatures(lines [][]byte, prefix string) map[string]string {
+	features := make(map[string]string)
 
 	for _, line := range lines {
 		if len(line) > 0 {
@@ -107,8 +130,8 @@ func parseFeatures(lines [][]byte, prefix string) source.FeatureLabels {
 }
 
 // Run all hooks and get features
-func getFeaturesFromHooks() (source.FeatureLabels, error) {
-	features := source.FeatureLabels{}
+func getFeaturesFromHooks() (map[string]string, error) {
+	features := make(map[string]string)
 
 	files, err := ioutil.ReadDir(hookDir)
 	if err != nil {
@@ -182,8 +205,8 @@ func runHook(file string) ([][]byte, error) {
 }
 
 // Read all files to get features
-func getFeaturesFromFiles() (source.FeatureLabels, error) {
-	features := source.FeatureLabels{}
+func getFeaturesFromFiles() (map[string]string, error) {
+	features := make(map[string]string)
 
 	files, err := ioutil.ReadDir(featureFilesDir)
 	if err != nil {
