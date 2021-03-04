@@ -24,20 +24,16 @@ import (
 )
 
 // LoadedKModRule matches loaded kernel modules in the system
-type LoadedKModRule []string
+type LoadedKModRule struct {
+	source.MatchExpressionSet
+}
 
 // Match loaded kernel modules on provided list of kernel modules
-func (kmods *LoadedKModRule) Match() (bool, error) {
+func (r *LoadedKModRule) Match() (bool, error) {
 	modules, ok := source.GetFeatureSource("kernel").GetFeatures().Keys[kernel.LoadedModuleFeature]
 	if !ok {
 		return false, fmt.Errorf("info about loaded modules not available")
 	}
 
-	for _, kmod := range *kmods {
-		if _, ok := modules.Features[kmod]; !ok {
-			// kernel module not loaded
-			return false, nil
-		}
-	}
-	return true, nil
+	return r.MatchKeys(modules.Features)
 }
