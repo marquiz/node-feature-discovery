@@ -17,10 +17,13 @@ limitations under the License.
 package custom
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
@@ -28,8 +31,12 @@ import (
 
 const Name = "custom"
 
-// Custom Features Configurations
-type MatchRule struct {
+type DomainsRule map[string]DomainRule
+
+type DomainRule map[string]source.MatchExpressionSet
+
+// Legacy rules
+type LegacyRule struct {
 	PciID      *rules.PciIDRule      `json:"pciId,omitempty"`
 	UsbID      *rules.UsbIDRule      `json:"usbId,omitempty"`
 	LoadedKMod *rules.LoadedKModRule `json:"loadedKMod,omitempty"`
@@ -39,9 +46,11 @@ type MatchRule struct {
 }
 
 type FeatureSpec struct {
-	Name    string      `json:"name"`
-	Value   *string     `json:"value,omitempty"`
-	MatchOn []MatchRule `json:"matchOn"`
+	Name     string        `json:"name"`
+	Value    *string       `json:"value,omitempty"`
+	MatchOn  []LegacyRule  `json:"matchOn"`
+	MatchAny []DomainsRule `json:"matchAny"`
+	MatchAll []DomainsRule `json:"matchAll"`
 }
 
 type config []FeatureSpec
@@ -87,13 +96,19 @@ func (s *customSource) Priority() int { return 10 }
 
 // GetLabels method of the LabelSource interface
 func (s *customSource) GetLabels() (source.FeatureLabels, error) {
-	features := source.FeatureLabels{}
+	// Get raw features from all sources
+	domainFeatures := make(map[string]*feature.DomainFeatures)
+	for n, s := range source.GetAllFeatureSources() {
+		domainFeatures[n] = s.GetFeatures()
+	}
+
+	labels := source.FeatureLabels{}
 	allFeatureConfig := append(getStaticFeatureConfig(), *s.config...)
 	allFeatureConfig = append(allFeatureConfig, getDirectoryFeatureConfig()...)
 	utils.KlogDump(2, "custom features configuration:", "  ", allFeatureConfig)
 	// Iterate over features
 	for _, customFeature := range allFeatureConfig {
-		featureExist, err := s.discoverFeature(customFeature)
+		featureExist, err := customFeature.discover(domainFeatures)
 		if err != nil {
 			klog.Errorf("failed to discover feature: %q: %s", customFeature.Name, err.Error())
 			continue
@@ -103,48 +118,118 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 			if customFeature.Value != nil {
 				value = *customFeature.Value
 			}
-			features[customFeature.Name] = value
+			labels[customFeature.Name] = value
 		}
 	}
-	return features, nil
+	return labels, nil
 }
 
 // Process a single feature by Matching on the defined rules.
-// A feature is present if all defined Rules in a MatchRule return a match.
-func (s *customSource) discoverFeature(feature FeatureSpec) (bool, error) {
-	for _, matchRules := range feature.MatchOn {
-
-		allRules := []source.CustomRule{
-			matchRules.PciID,
-			matchRules.UsbID,
-			matchRules.LoadedKMod,
-			matchRules.CpuID,
-			matchRules.Kconfig,
-			matchRules.Nodename,
-		}
-
-		// return true, nil if all rules match
-		matchRules := func(rules []source.CustomRule) (bool, error) {
-			for _, rule := range rules {
-				if reflect.ValueOf(rule).IsNil() {
-					continue
-				}
-				if match, err := rule.Match(); err != nil {
-					return false, err
-				} else if !match {
-					return false, nil
-				}
+func (s *FeatureSpec) discover(features map[string]*feature.DomainFeatures) (bool, error) {
+	if len(s.MatchOn) > 0 {
+		// Logical OR over the legacy rules
+		matched := false
+		for _, matchRule := range s.MatchOn {
+			if match, err := matchRule.match(); err != nil {
+				return false, err
+			} else if match {
+				matched = true
+				break
 			}
-			return true, nil
 		}
-
-		if match, err := matchRules(allRules); err != nil {
-			return false, err
-		} else if match {
-			return true, nil
+		if !matched {
+			return false, nil
 		}
 	}
-	return false, nil
+
+	if len(s.MatchAny) > 0 {
+		// Logical OR over the matchAny rules
+		matched := false
+		for _, matchRule := range s.MatchAny {
+			if match, err := matchRule.match(features); err != nil {
+				return false, err
+			} else if match {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false, nil
+		}
+	}
+
+	if len(s.MatchAll) > 0 {
+		// Logical AND over the matchAll rules
+		for _, matchRule := range s.MatchAll {
+			if match, err := matchRule.match(features); err != nil {
+				return false, err
+			} else if !match {
+				return false, nil
+			}
+		}
+	}
+
+	return true, nil
+}
+
+func (r *DomainsRule) match(features map[string]*feature.DomainFeatures) (bool, error) {
+	for domain, rules := range *r {
+		domainFeatures, ok := features[domain]
+		if !ok {
+			return false, fmt.Errorf("unknown feature source/domain %q", domain)
+		}
+		for featureName, featureRules := range rules {
+			var m bool
+			var err error
+
+			// Ignore case
+			featureName = strings.ToLower(featureName)
+
+			if f, ok := domainFeatures.Keys[featureName]; ok {
+				m, err = featureRules.MatchKeys(f.Features)
+			} else if f, ok := domainFeatures.Values[featureName]; ok {
+				m, err = featureRules.MatchValues(f.Features)
+			} else if f, ok := domainFeatures.Instances[featureName]; ok {
+				m, err = featureRules.MatchInstances(f.Features)
+			} else {
+				return false, fmt.Errorf("%q feature of source/domain %q not available", featureName, domain)
+			}
+			if err != nil {
+				return false, err
+			} else if !m {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
+
+func (r *LegacyRule) match() (bool, error) {
+	allRules := []source.CustomRule{
+		r.PciID,
+		r.UsbID,
+		r.LoadedKMod,
+		r.CpuID,
+		r.Kconfig,
+		r.Nodename,
+	}
+
+	// return true, nil if all rules match
+	matchRules := func(rules []source.CustomRule) (bool, error) {
+		for _, rule := range rules {
+			if reflect.ValueOf(rule).IsNil() {
+				continue
+			}
+			if match, err := rule.Match(); err != nil {
+				return false, err
+			} else if !match {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+
+	return matchRules(allRules)
 }
 
 func init() {
