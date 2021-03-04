@@ -24,20 +24,14 @@ import (
 )
 
 // CpuIDRule implements Rule for the custom source
-type CpuIDRule []string
+type CpuIDRule struct {
+	source.MatchExpressionSet
+}
 
-var cpuIdFlags map[string]struct{}
-
-func (cpuids *CpuIDRule) Match() (bool, error) {
+func (r *CpuIDRule) Match() (bool, error) {
 	flags, ok := source.GetFeatureSource("cpu").GetFeatures().Keys[cpu.CpuidFeature]
 	if !ok {
 		return false, fmt.Errorf("cpuid information not available")
 	}
-
-	for _, f := range *cpuids {
-		if _, ok := flags.Features[f]; !ok {
-			return false, nil
-		}
-	}
-	return true, nil
+	return r.MatchKeys(flags.Features)
 }
