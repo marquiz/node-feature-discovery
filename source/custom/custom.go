@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/node-feature-discovery/source"
 	"sigs.k8s.io/node-feature-discovery/source/cpu"
 	"sigs.k8s.io/node-feature-discovery/source/kernel"
+	"sigs.k8s.io/node-feature-discovery/source/local"
 	"sigs.k8s.io/node-feature-discovery/source/pci"
 	"sigs.k8s.io/node-feature-discovery/source/system"
 	"sigs.k8s.io/node-feature-discovery/source/usb"
@@ -40,6 +41,7 @@ type MatchRule struct {
 	Nodename   *system.NodenameRule   `json:"nodename,omitempty"`
 	CPU        *cpu.CustomRule        `json:"cpu,omitempty"`
 	Kernel     *kernel.CustomRule     `json:"kernel,omitempty"`
+	Local      *local.CustomRule      `json:"local,omitempty"`
 	System     *system.CustomRule     `json:"system,omitempty"`
 }
 
@@ -128,6 +130,7 @@ func (s *customSource) discoverFeature(feature FeatureSpec) (bool, error) {
 			matchRules.Nodename,
 			matchRules.CPU,
 			matchRules.Kernel,
+			matchRules.Local,
 			matchRules.System,
 		}
 
