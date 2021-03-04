@@ -16,16 +16,15 @@ limitations under the License.
 
 package cpu
 
+import (
+	"sigs.k8s.io/node-feature-discovery/source"
+)
+
 // CpuIDRule implements Rule for the custom source
-type CpuIDRule []string
+type CpuIDRule struct {
+	source.MatchExpressionSet
+}
 
-var cpuIdFlags map[string]struct{}
-
-func (cpuids *CpuIDRule) Match() (bool, error) {
-	for _, f := range *cpuids {
-		if _, ok := src.features.Cpuid[f]; !ok {
-			return false, nil
-		}
-	}
-	return true, nil
+func (r *CpuIDRule) Match() (bool, error) {
+	return r.MatchKeys(src.features.Cpuid)
 }

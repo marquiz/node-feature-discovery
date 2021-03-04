@@ -17,42 +17,14 @@ limitations under the License.
 package kernel
 
 import (
-	"encoding/json"
-	"strings"
-
-	"k8s.io/klog/v2"
+	"sigs.k8s.io/node-feature-discovery/source"
 )
 
 // KconfigRule implements Rule for the custom source
-type KconfigRule []kconfig
-
-type kconfig struct {
-	Name  string
-	Value string
+type KconfigRule struct {
+	source.MatchExpressionSet
 }
 
-func (kconfigs *KconfigRule) Match() (bool, error) {
-	for _, f := range *kconfigs {
-		klog.V(2).Infof("matching kconfig rule %s = %s", f.Name, f.Value)
-		if v, ok := src.features.Config[f.Name]; !ok || f.Value != v {
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
-func (c *kconfig) UnmarshalJSON(data []byte) error {
-	var raw string
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-
-	split := strings.SplitN(raw, "=", 2)
-	c.Name = split[0]
-	if len(split) == 1 {
-		c.Value = "true"
-	} else {
-		c.Value = split[1]
-	}
-	return nil
+func (r *KconfigRule) Match() (bool, error) {
+	return r.MatchValues(src.features.Config)
 }

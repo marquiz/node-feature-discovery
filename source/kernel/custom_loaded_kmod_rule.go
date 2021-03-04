@@ -16,16 +16,16 @@ limitations under the License.
 
 package kernel
 
+import (
+	"sigs.k8s.io/node-feature-discovery/source"
+)
+
 // Rule that matches on loaded kernel modules in the system
-type LoadedKModRule []string
+type LoadedKModRule struct {
+	source.MatchExpressionSet
+}
 
 // Match loaded kernel modules on provided list of kernel modules
-func (kmods *LoadedKModRule) Match() (bool, error) {
-	for _, kmod := range *kmods {
-		if _, ok := src.features.LoadedModules[kmod]; !ok {
-			// kernel module not loaded
-			return false, nil
-		}
-	}
-	return true, nil
+func (r *LoadedKModRule) Match() (bool, error) {
+	return r.MatchKeys(src.features.LoadedModules)
 }
