@@ -38,6 +38,7 @@ type MatchRule struct {
 	CpuID      *cpu.CpuIDRule         `json:"cpuId,omitempty"`
 	Kconfig    *kernel.KconfigRule    `json:"kConfig,omitempty"`
 	Nodename   *system.NodenameRule   `json:"nodename,omitempty"`
+	CPU        *cpu.CustomRule        `json:"cpu,omitempty"`
 	Kernel     *kernel.CustomRule     `json:"kernel,omitempty"`
 	System     *system.CustomRule     `json:"system,omitempty"`
 }
@@ -125,6 +126,7 @@ func (s *customSource) discoverFeature(feature FeatureSpec) (bool, error) {
 			matchRules.CpuID,
 			matchRules.Kconfig,
 			matchRules.Nodename,
+			matchRules.CPU,
 			matchRules.Kernel,
 			matchRules.System,
 		}
