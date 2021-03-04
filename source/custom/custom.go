@@ -39,6 +39,7 @@ type MatchRule struct {
 	Kconfig    *kernel.KconfigRule    `json:"kConfig,omitempty"`
 	Nodename   *system.NodenameRule   `json:"nodename,omitempty"`
 	Kernel     *kernel.CustomRule     `json:"kernel,omitempty"`
+	System     *system.CustomRule     `json:"system,omitempty"`
 }
 
 type FeatureSpec struct {
