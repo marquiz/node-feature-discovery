@@ -29,9 +29,11 @@ func getStaticFeatureConfig() []FeatureSpec {
 			Name: "rdma.capable",
 			MatchOn: []MatchRule{
 				MatchRule{
-					PciID: &rules.PciIDRule{
-						source.MatchExpressionSet{
-							"vendor": source.NewMatchExpression(source.MatchIn, "15b3"),
+					Legacy: Legacy{
+						PciID: &rules.PciIDRule{
+							source.MatchExpressionSet{
+								"vendor": source.NewMatchExpression(source.MatchIn, "15b3"),
+							},
 						},
 					},
 				},
@@ -41,10 +43,12 @@ func getStaticFeatureConfig() []FeatureSpec {
 			Name: "rdma.available",
 			MatchOn: []MatchRule{
 				MatchRule{
-					LoadedKMod: &rules.LoadedKModRule{
-						source.MatchExpressionSet{
-							"ib_uverbs": source.NewMatchExpression(source.MatchExists),
-							"rdma_ucm":  source.NewMatchExpression(source.MatchExists),
+					Legacy: Legacy{
+						LoadedKMod: &rules.LoadedKModRule{
+							source.MatchExpressionSet{
+								"ib_uverbs": source.NewMatchExpression(source.MatchExists),
+								"rdma_ucm":  source.NewMatchExpression(source.MatchExists),
+							},
 						},
 					},
 				},
