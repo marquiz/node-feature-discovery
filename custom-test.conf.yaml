@@ -62,36 +62,36 @@ sources:
          loadedModule : ["fuse"]
          config:
            X86:
-           LOG_BUF_SHIFT: {op: Gt, values: ["10"]}
+           LOG_BUF_SHIFT: {op: Gt, value: ["10"]}
          version:
-           major: {op: In, values: ["4"]}
-           minor: {op: Gt, values: ["11"]}
+           major: {op: In, value: ["4"]}
+           minor: {op: Gt, value: ["11"]}
   - name: kernel-test-NEGATIVE
     matchOn:
     - kernel:
          loadedModule : ["fuse"]
          config:
-           LOG_BUF_SHIFT: {op: Lt, values: ["10"]}
+           LOG_BUF_SHIFT: {op: Lt, value: ["10"]}
 
   - name: system-test-1
     matchOn:
       - system:
           osRelease:
-            NAME: {op: InRegexp, values: ["^openSUSE.*"]}
-            VERSION_ID.major: {op: In, values: ["13", "15"]}
+            NAME: {op: InRegexp, value: ["^openSUSE.*"]}
+            VERSION_ID.major: {op: In, value: ["13", "15"]}
   - name: system-test-NEGATIVE
     matchOn:
       - system:
           osRelease:
-            VERSION_ID.major: {op: Gt, values: ["130"]}
+            VERSION_ID.major: {op: Gt, value: ["130"]}
 
   - name: local-test-1
     matchOn:
       - local:
           label:
-            example.com/local-feature: {op: Lt, values: ["200"]}
+            example.com/local-feature: {op: Lt, value: ["200"]}
   - name: local-test-NEGATIVE
     matchOn:
       - local:
           label:
-            example.com/local-feature: {op: Gt, values: ["200"]}
+            example.com/local-feature: {op: Gt, value: ["200"]}
