@@ -32,13 +32,15 @@ type CustomRule interface {
 }
 
 type MatchExpression struct {
-	Op     MatchOp
-	Values []string `json:",omitempty"`
+	Op    MatchOp
+	Value MatchValue `json:",omitempty"`
 }
 
 type MatchExpressionSet map[string]*MatchExpression
 
 type MatchOp string
+
+type MatchValue []string
 
 const (
 	MatchAny          MatchOp = ""
@@ -69,8 +71,7 @@ var matchOps = map[MatchOp]struct{}{
 func (m *MatchOp) UnmarshalJSON(data []byte) error {
 	var raw string
 
-	err := json.Unmarshal(data, &raw)
-	if err != nil {
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 
@@ -81,10 +82,41 @@ func (m *MatchOp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (m *MatchValue) UnmarshalJSON(data []byte) error {
+	var raw interface{}
+
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	switch v := raw.(type) {
+	case string:
+		*m = []string{v}
+	case bool:
+		*m = []string{strconv.FormatBool(v)}
+	case float64:
+		*m = []string{strconv.FormatFloat(v, 'f', -1, 64)}
+	case []interface{}:
+		values := make([]string, len(v))
+		for i, value := range v {
+			str, ok := value.(string)
+			if !ok {
+				return fmt.Errorf("invalid value %v in %v", value, v)
+			}
+			values[i] = str
+		}
+		*m = values
+	default:
+		return fmt.Errorf("invalid values '%v' (%T)", v, v)
+	}
+
+	return nil
+}
+
 func NewMatchExpression(op MatchOp, values ...string) *MatchExpression {
 	return &MatchExpression{
-		Op:     op,
-		Values: values,
+		Op:    op,
+		Value: values,
 	}
 }
 
@@ -109,20 +141,20 @@ func (m *MatchExpression) Match(valid bool, value interface{}) (bool, error) {
 		value := fmt.Sprintf("%v", value)
 		switch m.Op {
 		case MatchIn:
-			for _, v := range m.Values {
+			for _, v := range m.Value {
 				if value == v {
 					return true, nil
 				}
 			}
 		case MatchNotIn:
-			for _, v := range m.Values {
+			for _, v := range m.Value {
 				if value == v {
 					return false, nil
 				}
 			}
 			return true, nil
 		case MatchInRegexp:
-			for _, v := range m.Values {
+			for _, v := range m.Value {
 				re, err := regexp.Compile(v)
 				if err != nil {
 					return false, fmt.Errorf("invalid regexp %q in %v", v, m)
@@ -136,7 +168,7 @@ func (m *MatchExpression) Match(valid bool, value interface{}) (bool, error) {
 			if err != nil {
 				return false, fmt.Errorf("not a number %q", value)
 			}
-			for _, v := range m.Values {
+			for _, v := range m.Value {
 				j, err := strconv.Atoi(v)
 				if err != nil {
 					return false, fmt.Errorf("not a number %q in %v", v, m)
@@ -173,10 +205,13 @@ func (m *MatchExpression) MatchKeys(name string, keys map[string]struct{}) (bool
 }
 
 func (m *MatchExpression) MatchValues(name string, values map[string]string) (bool, error) {
-	klog.V(3).Infof("matching %q %q %v against %v", name, m.Op, m.Values, values)
+	klog.V(3).Infof("matching %q %q %v against %v", name, m.Op, m.Value, values)
 	v, ok := values[name]
 	return m.Match(ok, v)
 }
+
+// matchExpression is a helper type for unmarshalling MatchExpression
+type matchExpression MatchExpression
 
 func (m *MatchExpression) UnmarshalJSON(data []byte) error {
 	raw := new(interface{})
@@ -204,31 +239,11 @@ func (m *MatchExpression) UnmarshalJSON(data []byte) error {
 		}
 		*m = *NewMatchExpression(MatchIn, values...)
 	case map[string]interface{}:
-		op, ok := v["op"]
-		if !ok {
-			return fmt.Errorf("missing 'op' field in %v", v)
+		helper := &matchExpression{}
+		if err := json.Unmarshal(data, &helper); err != nil {
+			return err
 		}
-		opStr, ok := op.(string)
-		if !ok {
-			return fmt.Errorf("invalid 'op' %v in %v", op, v)
-		}
-		m.Op = MatchOp(opStr)
-
-		if values, ok := v["values"]; ok {
-			vSlice, ok := values.([]interface{})
-			if !ok {
-				return fmt.Errorf("invalid 'values' %v in %v", values, v)
-			}
-
-			m.Values = make([]string, len(vSlice))
-			for i, value := range vSlice {
-				str, ok := value.(string)
-				if !ok {
-					return fmt.Errorf("invalid value %v in %v", value, v)
-				}
-				m.Values[i] = str
-			}
-		}
+		*m = *NewMatchExpression(helper.Op, helper.Value...)
 	default:
 		return fmt.Errorf("invalid rule '%v' (%T)", v, v)
 	}
