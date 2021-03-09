@@ -449,8 +449,10 @@ func (w *nfdWorker) configure(filepath string, overrides string) error {
 	}
 
 	// (Re-)configure sources
-	for _, s := range confSources {
-		s.SetConfig(c.Sources[s.Name()])
+	for n, s := range confSources {
+		if err := s.SetConfig(c.Sources[s.Name()]); err != nil {
+			return fmt.Errorf("failed to configure source %q: %v", n, err)
+		}
 	}
 
 	klog.Infof("worker (re-)configuration successfully completed")

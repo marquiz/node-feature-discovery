@@ -72,13 +72,14 @@ func (s *pciSource) NewConfig() source.Config { return newDefaultConfig() }
 func (s *pciSource) GetConfig() source.Config { return s.config }
 
 // SetConfig method of the LabelSource interface
-func (s *pciSource) SetConfig(conf source.Config) {
+func (s *pciSource) SetConfig(conf source.Config) error {
 	switch v := conf.(type) {
 	case *Config:
 		s.config = v
 	default:
-		klog.Fatalf("invalid config type: %T", conf)
+		return fmt.Errorf("invalid config type: %T", conf)
 	}
+	return nil
 }
 
 // Priority method of the LabelSource interface

@@ -17,6 +17,9 @@ limitations under the License.
 package custom
 
 import (
+	"fmt"
+
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
@@ -58,13 +61,17 @@ func (s *customSource) NewConfig() source.Config { return newDefaultConfig() }
 func (s *customSource) GetConfig() source.Config { return s.config }
 
 // SetConfig method of the LabelSource interface
-func (s *customSource) SetConfig(conf source.Config) {
+func (s *customSource) SetConfig(conf source.Config) error {
 	switch v := conf.(type) {
 	case *config:
+		if err := v.validate(); err != nil {
+			return err
+		}
 		s.config = v
 	default:
-		klog.Fatalf("invalid config type: %T", conf)
+		return fmt.Errorf("invalid config type: %T", conf)
 	}
+	return nil
 }
 
 // Priority method of the LabelSource interface
@@ -117,6 +124,32 @@ func (s customSource) discoverFeature(feature FeatureSpec) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (c *config) validate() error {
+	for _, spec := range *c {
+		// Validate label name and value
+		errs := validation.IsQualifiedName(spec.Name)
+		if len(errs) > 0 {
+			return fmt.Errorf("invalid custom feature name %q: %s", spec.Name, errs)
+		}
+		if spec.Value != nil {
+			errs = validation.IsValidLabelValue(*spec.Value)
+			if len(errs) > 0 {
+				return fmt.Errorf("invalid custom feature value %q in %q: %s", spec.Name, *spec.Value, errs)
+			}
+		}
+
+		// Validate rules
+		for _, rules := range spec.MatchOn {
+			for name, rule := range rules {
+				if err := rule.Validate(); err != nil {
+					return fmt.Errorf("rule validation of %q.%s failed: %v", spec.Name, name, err)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func init() {

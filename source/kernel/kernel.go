@@ -17,6 +17,8 @@ limitations under the License.
 package kernel
 
 import (
+	"fmt"
+
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
@@ -74,13 +76,14 @@ func (s *kernelSource) NewConfig() source.Config { return newDefaultConfig() }
 func (s *kernelSource) GetConfig() source.Config { return s.config }
 
 // SetConfig method of the LabelSource interface
-func (s *kernelSource) SetConfig(conf source.Config) {
+func (s *kernelSource) SetConfig(conf source.Config) error {
 	switch v := conf.(type) {
 	case *Config:
 		s.config = v
 	default:
-		klog.Fatalf("invalid config type: %T", conf)
+		return fmt.Errorf("invalid config type: %T", conf)
 	}
+	return nil
 }
 
 // Priority method of the LabelSource interface

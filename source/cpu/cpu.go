@@ -17,6 +17,7 @@ limitations under the License.
 package cpu
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"k8s.io/klog/v2"
@@ -116,14 +117,15 @@ func (s *cpuSource) NewConfig() source.Config { return newDefaultConfig() }
 func (s *cpuSource) GetConfig() source.Config { return s.config }
 
 // SetConfig method of the LabelSource interface
-func (s *cpuSource) SetConfig(conf source.Config) {
+func (s *cpuSource) SetConfig(conf source.Config) error {
 	switch v := conf.(type) {
 	case *Config:
 		s.config = v
 		s.initCpuidFilter()
 	default:
-		klog.Fatalf("invalid config type: %T", conf)
+		return fmt.Errorf("invalid config type: %T", conf)
 	}
+	return nil
 }
 
 // Priority method of the LabelSource interface

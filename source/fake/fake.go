@@ -60,13 +60,14 @@ func (s *fakeSource) NewConfig() source.Config { return newDefaultConfig() }
 func (s *fakeSource) GetConfig() source.Config { return s.config }
 
 // SetConfig method of the LabelSource interface
-func (s *fakeSource) SetConfig(conf source.Config) {
+func (s *fakeSource) SetConfig(conf source.Config) error {
 	switch v := conf.(type) {
 	case *Config:
 		s.config = v
 	default:
-		panic(fmt.Sprintf("invalid config type: %T", conf))
+		return fmt.Errorf("invalid config type: %T", conf)
 	}
+	return nil
 }
 
 // Configure method of the LabelSource interface

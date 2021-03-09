@@ -55,7 +55,7 @@ type ConfigurableSource interface {
 	GetConfig() Config
 
 	// SetConfig changes the effective configuration of the source
-	SetConfig(Config)
+	SetConfig(Config) error
 }
 
 // TestSource represents a source purposed for testing only
