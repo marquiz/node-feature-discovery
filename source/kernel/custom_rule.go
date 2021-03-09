@@ -18,6 +18,7 @@ package kernel
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"k8s.io/klog/v2"
 
@@ -32,6 +33,14 @@ type CustomRule struct {
 	Selinux   struct {
 		Enabled source.MatchExpression
 	}
+}
+
+func (r *CustomRule) Validate() error {
+	if r.Config.IsNil() && r.LoadedMod.IsNil() && r.Version.IsNil() && r.Selinux.Enabled.IsNil() {
+		return fmt.Errorf("rule empty")
+	}
+	// NOTE: single MatchExpressions have already been validated on JSON unmarshal
+	return nil
 }
 
 func (r *CustomRule) Match() (bool, error) {

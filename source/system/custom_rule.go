@@ -18,6 +18,7 @@ package system
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"k8s.io/klog/v2"
 
@@ -28,6 +29,13 @@ import (
 type CustomRule struct {
 	NodeName  source.MatchExpression
 	OsRelease source.MatchExpressionSet
+}
+
+func (r *CustomRule) Validate() error {
+	if r.NodeName.IsNil() && r.OsRelease.IsNil() {
+		return fmt.Errorf("rule empty")
+	}
+	return nil
 }
 
 func (r *CustomRule) Match() (bool, error) {

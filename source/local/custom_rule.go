@@ -29,6 +29,8 @@ type CustomRule struct {
 	Labels source.MatchExpressionSet
 }
 
+func (r *CustomRule) Validate() error { return r.Labels.Validate() }
+
 func (r *CustomRule) Match() (bool, error) {
 	if m, err := r.Labels.MatchValues(src.features.Labels); err != nil || m == false {
 		klog.V(2).Infof("local CustomRule: failed to match labels")

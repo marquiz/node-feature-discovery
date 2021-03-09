@@ -33,12 +33,21 @@ func (r *CustomRuleSet) UnmarshalJSON(data []byte) error {
 	}
 
 	for k, v := range raw {
+		if string(v) == "null" {
+			return fmt.Errorf("empty rule %q", k)
+		}
+
 		name := strings.ToLower(k)
 		if f, ok := rules[name]; ok {
 			rule, err := f(v)
 			if err != nil {
 				return err
 			}
+
+			if err := rule.Validate(); err != nil {
+				return fmt.Errorf("rule '%s: %s' validation failed: %v", k, v, err)
+			}
+
 			(*r)[name] = rule
 		} else {
 			supported := make([]string, 0, len(rules))

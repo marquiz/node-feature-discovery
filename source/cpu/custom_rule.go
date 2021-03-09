@@ -18,6 +18,7 @@ package cpu
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"k8s.io/klog/v2"
 
@@ -38,6 +39,14 @@ type CustomRule struct {
 	Topology struct {
 		HardwareMultithreading source.MatchExpression
 	}
+}
+
+func (r *CustomRule) Validate() error {
+	if r.Cpuid.IsNil() && r.Cstate.IsNil() && r.Pstate.IsNil() && r.Rdt.IsNil() && r.Sst.BaseFrequency.Enabled.IsNil() && r.Topology.HardwareMultithreading.IsNil() {
+		return fmt.Errorf("rule empty")
+	}
+	// NOTE: single MatchExpressions have already been validated on JSON unmarshal
+	return nil
 }
 
 func (r *CustomRule) Match() (bool, error) {

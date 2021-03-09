@@ -27,6 +27,8 @@ import (
 )
 
 type CustomRule interface {
+	// Valideate validates the correctness of the rule
+	Validate() error
 	// Match on rule
 	Match() (bool, error)
 }
@@ -140,6 +142,8 @@ func (m *MatchExpression) Validate() error {
 	}
 	return nil
 }
+
+func (m *MatchExpression) IsNil() bool { return m.Op == MatchAny }
 
 func (m *MatchExpression) Match(valid bool, value interface{}) (bool, error) {
 	switch m.Op {
@@ -323,5 +327,14 @@ func (m *MatchExpressionSet) UnmarshalJSON(data []byte) error {
 		}
 	}
 
+	return m.Validate()
+}
+
+func (m *MatchExpressionSet) Validate() error {
+	if m.IsNil() {
+		return fmt.Errorf("empty rule, no match expressions specified")
+	}
 	return nil
 }
+
+func (m *MatchExpressionSet) IsNil() bool { return len(*m) == 0 }
