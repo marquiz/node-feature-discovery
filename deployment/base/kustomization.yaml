@@ -9,7 +9,6 @@ resources:
 - master-clusterrolebinding.yaml
 - master-service.yaml
 - master-deployment.yaml
-- worker-daemonset.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -18,21 +17,3 @@ configMapGenerator:
 - files:
   - nfd-worker.conf=nfd-worker.conf.example
   name: nfd-worker-conf
-
-patches:
-- path: patches/env.yaml
-  target:
-    labelSelector: app=nfd
-    name: nfd.*
-- path: patches/securitycontext.yaml
-  target:
-    labelSelector: app=nfd
-    name: nfd.*
-- path: patches/master-affinity.yaml
-  target:
-    labelSelector: app=nfd
-    name: nfd-master
-- path: patches/worker-mounts.yaml
-  target:
-    labelSelector: app=nfd
-    name: nfd-worker

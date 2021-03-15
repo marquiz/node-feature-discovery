@@ -6,3 +6,7 @@ namespace: node-feature-discovery
 resources:
 - ../../base
 - namespace.yaml
+
+components:
+- ../../components/worker-daemonset
+- ../../components/common
