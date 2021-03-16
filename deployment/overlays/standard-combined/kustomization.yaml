@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: node-feature-discovery
+
+resources:
+- ../../base
+- master-worker-daemonset.yaml
+- namespace.yaml
+
+patches:
+- path: env.yaml
+  target:
+    labelSelector: app=nfd
+    name: nfd
+- path: securitycontext.yaml
+  target:
+    labelSelector: app=nfd
+    name: nfd
+- path: worker-mounts.yaml
+  target:
+    labelSelector: app=nfd
+    name: nfd
+
+patchesStrategicMerge:
+- delete-master-service.yaml
+- delete-master-deployment.yaml
