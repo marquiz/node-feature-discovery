@@ -30,7 +30,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
             runAsNonRoot: true
           command:
             - "nfd-worker"
@@ -65,9 +65,12 @@ spec:
             - name: features-d
               mountPath: "/etc/kubernetes/node-feature-discovery/features.d/"
               readOnly: true
-            - name: nfd-worker-conf
-              mountPath: "/etc/kubernetes/node-feature-discovery"
+            - name: host-nfd-worker-conf
+              mountPath: "/etc/kubernetes/node-feature-discovery/nfd-worker.conf"
               readOnly: true
+#            - name: nfd-worker-conf
+#              mountPath: "/etc/kubernetes/node-feature-discovery"
+#              readOnly: true
 ## Example for more custom configs in an additional configmap (1/3)
 ## Mounting into subdirectories of custom.d makes it easy to use multiple configmaps
 #            - name: custom-source-extra-rules
@@ -99,6 +102,9 @@ spec:
         - name: features-d
           hostPath:
             path: "/etc/kubernetes/node-feature-discovery/features.d/"
+        - name: host-nfd-worker-conf
+          hostPath:
+            path: "/etc/kubernetes/node-feature-discovery/nfd-worker.conf"
         - name: nfd-worker-conf
           configMap:
             name: nfd-worker-conf
@@ -118,11 +124,11 @@ metadata:
   namespace: node-feature-discovery
 data:
   nfd-worker.conf: | ### <NFD-WORKER-CONF-START-DO-NOT-REMOVE>
-    #core:
+    core:
     #  labelWhiteList:
     #  noPublish: false
     #  sleepInterval: 60s
-    #  sources: [all]
+      sources: [custom]
     #  klog:
     #    addDirHeader: false
     #    alsologtostderr: false
@@ -138,63 +144,8 @@ data:
     #    logFile:
     #    logFileMaxSize: 1800
     #    skipLogHeaders: false
-    #sources:
-    #  cpu:
-    #    cpuid:
-    ##     NOTE: whitelist has priority over blacklist
-    #      attributeBlacklist:
-    #        - "BMI1"
-    #        - "BMI2"
-    #        - "CLMUL"
-    #        - "CMOV"
-    #        - "CX16"
-    #        - "ERMS"
-    #        - "F16C"
-    #        - "HTT"
-    #        - "LZCNT"
-    #        - "MMX"
-    #        - "MMXEXT"
-    #        - "NX"
-    #        - "POPCNT"
-    #        - "RDRAND"
-    #        - "RDSEED"
-    #        - "RDTSCP"
-    #        - "SGX"
-    #        - "SSE"
-    #        - "SSE2"
-    #        - "SSE3"
-    #        - "SSE4.1"
-    #        - "SSE4.2"
-    #        - "SSSE3"
-    #      attributeWhitelist:
-    #  kernel:
-    #    kconfigFile: "/path/to/kconfig"
-    #    configOpts:
-    #      - "NO_HZ"
-    #      - "X86"
-    #      - "DMI"
-    #  pci:
-    #    deviceClassWhitelist:
-    #      - "0200"
-    #      - "03"
-    #      - "12"
-    #    deviceLabelFields:
-    #      - "class"
-    #      - "vendor"
-    #      - "device"
-    #      - "subsystem_vendor"
-    #      - "subsystem_device"
-    #  usb:
-    #    deviceClassWhitelist:
-    #      - "0e"
-    #      - "ef"
-    #      - "fe"
-    #      - "ff"
-    #    deviceLabelFields:
-    #      - "class"
-    #      - "vendor"
-    #      - "device"
-    #  custom:
+    sources:
+      custom:
     #    - name: "my.kernel.feature"
     #      matchOn:
     #        - loadedKMod: ["example_kmod1", "example_kmod2"]

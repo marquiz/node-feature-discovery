@@ -92,6 +92,8 @@ spec:
             runAsNonRoot: true
           command:
             - "nfd-master"
+          args:
+            - "--extra-label-ns=intel.feature.node.kubernetes.io,intel.com"
 ## Enable TLS authentication
 ## The example below assumes having a Secret named nfd-master-cert with
 ## the TLS authentication credentials and a root certificate named ca.crt created.
