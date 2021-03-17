@@ -32,7 +32,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-          image: gcr.io/k8s-staging-nfd/node-feature-discovery:master
+          image: quay.io/marquiz/node-feature-discovery:demo
           imagePullPolicy: Always
           name: nfd-worker
           securityContext:
@@ -135,11 +135,11 @@ metadata:
   namespace: node-feature-discovery
 data:
   nfd-worker.conf: | ### <NFD-WORKER-CONF-START-DO-NOT-REMOVE>
-    #core:
+    core:
     #  labelWhiteList:
     #  noPublish: false
-    #  sleepInterval: 60s
-    #  sources: [all]
+      sleepInterval: 5s
+      sources: [custom]
     #  klog:
     #    addDirHeader: false
     #    alsologtostderr: false
@@ -155,63 +155,8 @@ data:
     #    logFile:
     #    logFileMaxSize: 1800
     #    skipLogHeaders: false
-    #sources:
-    #  cpu:
-    #    cpuid:
-    ##     NOTE: whitelist has priority over blacklist
-    #      attributeBlacklist:
-    #        - "BMI1"
-    #        - "BMI2"
-    #        - "CLMUL"
-    #        - "CMOV"
-    #        - "CX16"
-    #        - "ERMS"
-    #        - "F16C"
-    #        - "HTT"
-    #        - "LZCNT"
-    #        - "MMX"
-    #        - "MMXEXT"
-    #        - "NX"
-    #        - "POPCNT"
-    #        - "RDRAND"
-    #        - "RDSEED"
-    #        - "RDTSCP"
-    #        - "SGX"
-    #        - "SSE"
-    #        - "SSE2"
-    #        - "SSE3"
-    #        - "SSE4.1"
-    #        - "SSE4.2"
-    #        - "SSSE3"
-    #      attributeWhitelist:
-    #  kernel:
-    #    kconfigFile: "/path/to/kconfig"
-    #    configOpts:
-    #      - "NO_HZ"
-    #      - "X86"
-    #      - "DMI"
-    #  pci:
-    #    deviceClassWhitelist:
-    #      - "0200"
-    #      - "03"
-    #      - "12"
-    #    deviceLabelFields:
-    #      - "class"
-    #      - "vendor"
-    #      - "device"
-    #      - "subsystem_vendor"
-    #      - "subsystem_device"
-    #  usb:
-    #    deviceClassWhitelist:
-    #      - "0e"
-    #      - "ef"
-    #      - "fe"
-    #      - "ff"
-    #    deviceLabelFields:
-    #      - "class"
-    #      - "vendor"
-    #      - "device"
-    #  custom:
+    sources:
+      custom:
     #    - name: "my.kernel.feature"
     #      matchOn:
     #        - loadedKMod: ["example_kmod1", "example_kmod2"]

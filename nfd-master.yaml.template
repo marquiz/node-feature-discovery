@@ -81,7 +81,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-          image: gcr.io/k8s-staging-nfd/node-feature-discovery:master
+          image: quay.io/marquiz/node-feature-discovery:demo
           imagePullPolicy: Always
           name: nfd-master
           securityContext:
@@ -92,6 +92,8 @@ spec:
             runAsNonRoot: true
           command:
             - "nfd-master"
+          args:
+            - "--extra-label-ns=intel.feature.node.kubernetes.io,profile.node.kubernetes.io,intel.com"
 ## Enable TLS authentication
 ## The example below assumes having a Secret named nfd-master-cert with
 ## the TLS authentication credentials and a root certificate named ca.crt created.
