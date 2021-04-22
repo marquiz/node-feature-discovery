@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/fsnotify/fsnotify v1.4.9
+	github.com/gogo/protobuf v1.3.2
 	github.com/klauspost/cpuid/v2 v2.0.6
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
