@@ -540,6 +540,45 @@ func getFeatureLabels(source source.LabelSource, labelWhiteList regexp.Regexp) (
 	return labels, nil
 }
 
+// getFeatures returns raw features from all feature sources
+func getFeatures() map[string]*pb.DomainFeatures {
+	features := make(map[string]*pb.DomainFeatures)
+
+	for name, src := range source.GetAllFeatureSources() {
+		dfs := &pb.DomainFeatures{
+			Keys:      make(map[string]*pb.KeyAttributes),
+			Values:    make(map[string]*pb.ValueAttributes),
+			Instances: make(map[string]*pb.InstanceAttributes)}
+
+		rfs := src.GetFeatures()
+
+		for f, a := range rfs.Keys {
+			dfa := make(map[string]bool, len(a))
+			for k := range a {
+				dfa[k] = true
+			}
+			dfs.Keys[f] = &pb.KeyAttributes{Attributes: dfa}
+		}
+
+		for f, a := range rfs.Values {
+			dfs.Values[f] = &pb.ValueAttributes{Attributes: a}
+		}
+
+		for f, a := range rfs.Instances {
+			attributes := &pb.InstanceAttributes{Attributes: make([]*pb.InstanceAttribute, len(a))}
+
+			for i, ai := range a {
+				attributes.Attributes[i] = &pb.InstanceAttribute{Info: ai}
+			}
+			dfs.Instances[f] = attributes
+		}
+
+		features[name] = dfs
+	}
+
+	return features
+}
+
 // advertiseFeatureLabels advertises the feature labels to a Kubernetes node
 // via the NFD server.
 func advertiseFeatureLabels(client pb.LabelerClient, labels Labels) error {
@@ -549,6 +588,7 @@ func advertiseFeatureLabels(client pb.LabelerClient, labels Labels) error {
 	klog.Infof("sending labeling request to nfd-master")
 
 	labelReq := pb.SetLabelsRequest{Labels: labels,
+		Features:   getFeatures(),
 		NfdVersion: version.Get(),
 		NodeName:   nodeName}
 	_, err := client.SetLabels(ctx, &labelReq)
