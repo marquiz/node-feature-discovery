@@ -1,0 +1,97 @@
+sources:
+  custom:
+
+  - name: LEGACY-loaded-kmod-test-1
+    matchOn:
+    - loadedKMod: ["fuse", "ip_tables"]
+  - name: LEGACY-loaded-kmod-test-NEGATIVE
+    matchOn:
+    - loadedKMod: ["fuse", "ip_tables_foo"]
+
+
+  - name: LEGACY-cpuid-test-1
+    matchOn:
+    - cpuid: ["AVX", "AESNI"]
+  - name: LEGACY-cpuid-test-NEGATIVE
+    matchOn:
+    - cpuid: ["AVX1234"]
+
+  - name: LEGACY-pci-id-test-1
+    matchOn:
+    - pciId:
+        class: ["0600"]
+        vendor: ["8086"]
+  - name: LEGACY-pci-id-test-NEGATIVE
+    matchOn:
+    - pciId:
+        class: ["0600"]
+        vendor: ["ffff"]
+
+  - name: LEGACY-usb-id-test-1
+    matchOn:
+    - usbId:
+        class: ["09"]
+        vendor: ["1d6b"]
+  - name: LEGACY-usb-id-test-NEGATIVE
+    matchOn:
+    - usbId:
+        class: ["09"]
+        vendor: ["ffff"]
+
+  - name: LEGACY-nodename-test-1
+    matchOn:
+    - nodeName: ["foo"]
+  - name: LEGACY-nodename-test-NEGATIVE
+    matchOn:
+    - nodeName: ["bar"]
+
+  - name: cpu-test-1
+    matchOn:
+    - cpu:
+        cpuid: ["AVX", "AESNI"]
+        rdt:
+          RDTL3CA: {op: DoesNotExist}
+  - name: cpu-test-NEGATIVE
+    matchOn:
+    - cpu:
+        cpuid: ["AVX", "AESNI512"]
+
+  - name: kernel-test-1
+    matchOn:
+    - kernel:
+         loadedModule : ["fuse"]
+         config:
+           X86:
+           LOG_BUF_SHIFT: {op: Gt, values: ["10"]}
+         version:
+           major: {op: In, values: ["4"]}
+           minor: {op: Gt, values: ["11"]}
+  - name: kernel-test-NEGATIVE
+    matchOn:
+    - kernel:
+         loadedModule : ["fuse"]
+         config:
+           LOG_BUF_SHIFT: {op: Lt, values: ["10"]}
+
+  - name: system-test-1
+    matchOn:
+      - system:
+          osRelease:
+            NAME: {op: InRegexp, values: ["^openSUSE.*"]}
+            VERSION_ID.major: {op: In, values: ["13", "15"]}
+  - name: system-test-NEGATIVE
+    matchOn:
+      - system:
+          osRelease:
+            VERSION_ID.major: {op: Gt, values: ["130"]}
+
+  - name: local-test-1
+    matchOn:
+      - local:
+          label:
+            example.com/local-feature: {op: Lt, values: ["200"]}
+  - name: local-test-NEGATIVE
+    matchOn:
+      - local:
+          label:
+            example.com/local-feature: {op: Gt, values: ["200"]}
