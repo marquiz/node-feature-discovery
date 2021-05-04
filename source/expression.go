@@ -290,6 +290,13 @@ type MatchedKey struct {
 func (m *MatchExpressionSet) MatchGetKeys(keys map[string]feature.Nil) ([]MatchedKey, error) {
 	ret := make([]MatchedKey, 0, len(*m))
 
+	// An empty rule matches all keys
+	if len(*m) == 0 {
+		for n := range keys {
+			ret = append(ret, MatchedKey{Name: n})
+		}
+	}
+
 	for n, e := range *m {
 		match, err := e.MatchKeys(n, keys)
 		if err != nil {
@@ -316,6 +323,13 @@ type MatchedValue struct {
 
 func (m *MatchExpressionSet) MatchGetValues(values map[string]string) ([]MatchedValue, error) {
 	ret := make([]MatchedValue, 0, len(*m))
+
+	// An empty rule matches all values
+	if len(*m) == 0 {
+		for n, v := range values {
+			ret = append(ret, MatchedValue{Name: n, Value: v})
+		}
+	}
 
 	for n, e := range *m {
 		match, err := e.MatchValues(n, values)
