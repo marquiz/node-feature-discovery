@@ -17,10 +17,12 @@ limitations under the License.
 package custom
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
+	"text/template"
 
 	"k8s.io/klog/v2"
 
@@ -55,6 +57,8 @@ type FeatureSpec struct {
 	Name    string      `json:"name"`
 	Value   *string     `json:"value,omitempty"`
 	MatchOn []MatchRule `json:"matchOn"`
+
+	nameTemplate *template.Template
 }
 
 type config []FeatureSpec
@@ -86,13 +90,22 @@ func (s *customSource) NewConfig() source.Config { return newDefaultConfig() }
 func (s *customSource) GetConfig() source.Config { return s.config }
 
 // SetConfig method of the LabelSource interface
-func (s *customSource) SetConfig(conf source.Config) {
-	switch v := conf.(type) {
+func (s *customSource) SetConfig(c source.Config) {
+	switch c.(type) {
 	case *config:
-		s.config = v
 	default:
-		klog.Fatalf("invalid config type: %T", conf)
+		klog.Fatalf("invalid config type: %T", c)
 	}
+
+	// Parse template rules
+	conf := c.(*config)
+	for i, spec := range *conf {
+		if strings.Contains(spec.Name, "{{") {
+			(*conf)[i].nameTemplate = template.Must(template.New("").Option("missingkey=error").Parse(spec.Name))
+		}
+	}
+
+	s.config = conf
 }
 
 // Priority method of the LabelSource interface
@@ -111,70 +124,128 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 	allFeatureConfig = append(allFeatureConfig, getDirectoryFeatureConfig()...)
 	utils.KlogDump(2, "custom features configuration:", "  ", allFeatureConfig)
 	// Iterate over features
-	for _, customFeature := range allFeatureConfig {
-		featureExist, err := customFeature.discover(domainFeatures)
+	for _, spec := range allFeatureConfig {
+		features, err := spec.discover(domainFeatures)
 		if err != nil {
-			klog.Errorf("failed to discover feature: %q: %s", customFeature.Name, err.Error())
+			klog.Errorf("failed to discover feature: %q: %s", spec.Name, err.Error())
 			continue
 		}
-		if featureExist {
-			var value interface{} = true
-			if customFeature.Value != nil {
-				value = *customFeature.Value
-			}
-			labels[customFeature.Name] = value
+		for k, v := range features {
+			labels[k] = v
 		}
 	}
 	return labels, nil
 }
 
-// Process a single feature by Matching on the defined rules.
+// Process a single feature spec by Matching on the defined rules.
 // A feature is present if all defined Rules in a MatchRule return a match.
-func (s *FeatureSpec) discover(features map[string]source.Features) (bool, error) {
+func (s *FeatureSpec) discover(features map[string]source.Features) (map[string]string, error) {
+	ret := make(map[string]string)
+
 	for _, matchRules := range s.MatchOn {
 		if match, err := matchRules.Legacy.match(); err != nil {
-			return false, err
+			return nil, err
 		} else if match {
-			if match, err := matchRules.Domains.match(features); err != nil {
-				return false, err
-			} else if match {
-				return true, nil
+			matched, err := matchRules.Domains.match(features)
+			if err != nil {
+				return nil, err
+			} else if matched == nil {
+				continue
+			}
+
+			// We have a match
+			expandedName := s.Name
+			if s.nameTemplate != nil {
+				// Execute template to produce an array of labels
+				var tmp bytes.Buffer
+				if err := s.nameTemplate.Execute(&tmp, matched); err != nil {
+					return nil, err
+				}
+				expandedName = tmp.String()
+			}
+
+			// Split out individual labels
+			for _, item := range strings.Split(expandedName, "\n") {
+				// Remove leading/trailing whitespace and skip empty lines
+				if trimmed := strings.TrimSpace(item); trimmed != "" {
+					n, v := s.getNameValue(trimmed)
+					ret[n] = v
+				}
+			}
+
+			if s.nameTemplate == nil {
+				// No templating so we stop here (further matches would just
+				// produce the same labels)
+				break
 			}
 		}
 	}
-	return false, nil
+	return ret, nil
 }
 
-func (r *Domains) match(features map[string]source.Features) (bool, error) {
+func (s *FeatureSpec) getNameValue(name string) (string, string) {
+	// Value can be overridden in Name with "key=value". This is useful for
+	// templates.
+	if strings.ContainsRune(name, '=') {
+		split := strings.SplitN(name, "=", 2)
+		return split[0], split[1]
+	}
+
+	if s.Value != nil {
+		return name, *s.Value
+	}
+
+	return name, "true"
+}
+
+type domainMatchedFeatures map[string]interface{}
+
+func (r *Domains) match(features map[string]source.Features) (map[string]domainMatchedFeatures, error) {
+	ret := make(map[string]domainMatchedFeatures, len(*r))
+
 	for domain, rules := range *r {
 		domainFeatures, ok := features[domain]
 		if !ok {
-			return false, fmt.Errorf("unknown feature source/domain %q", domain)
+			return nil, fmt.Errorf("unknown feature source/domain %q", domain)
 		}
 		for featureName, featureRules := range rules {
 			var m bool
-			var err error
+			var e error
 
 			// Ignore case
 			featureName = strings.ToLower(featureName)
 
+			// Matched features
+			matched := make(map[string]interface{})
+
 			if f, ok := domainFeatures.Keys[featureName]; ok {
-				m, err = featureRules.MatchKeys(f)
+				v, err := featureRules.MatchGetKeys(f)
+				m = len(v) > 0
+				e = err
+				matched[featureName] = v
 			} else if f, ok := domainFeatures.Values[featureName]; ok {
-				m, err = featureRules.MatchValues(f)
+				v, err := featureRules.MatchGetValues(f)
+				m = len(v) > 0
+				e = err
+				matched[featureName] = v
 			} else if f, ok := domainFeatures.Instances[featureName]; ok {
-				m, err = featureRules.MatchInstances(f)
+				v, err := featureRules.MatchGetInstances(f)
+				m = len(v) > 0
+				e = err
+				matched[featureName] = v
 			} else {
-				return false, fmt.Errorf("%q feature of source/domain %q not available", featureName, domain)
+				return nil, fmt.Errorf("%q feature of source/domain %q not available", featureName, domain)
 			}
-			if err != nil {
-				return false, err
+			if e != nil {
+				return nil, e
 			} else if !m {
-				return false, nil
+				return nil, nil
 			}
+
+			ret[domain] = matched
 		}
 	}
-	return true, nil
+	return ret, nil
 }
 
 func (r *Legacy) match() (bool, error) {

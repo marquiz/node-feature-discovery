@@ -95,3 +95,18 @@ sources:
       - local:
           label:
             example.com/local-feature: {op: Gt, value: ["200"]}
+
+  - name: "{{range .pci.device}}TEMPLATE-pci-id-test-intel-{{ .class}}-{{ .device }}=present\n{{end}}"
+    matchOn:
+    - pci:
+        device:
+          class: {op: InRegexp, value: ["^06"]}
+          vendor: ["8086"]
+
+  - name: "{{range .system.osrelease}}TEMPLATE-system-test-{{.Name}}={{.Value}}\n{{end}}"
+    matchOn:
+      - system:
+          osRelease:
+            NAME: {op: InRegexp, value: ["^openSUSE.*"]}
+            ID: {op: InRegexp, value: ["^open.*"]}
+            VERSION_ID.major: {op: In, value: ["13", "15"]}
