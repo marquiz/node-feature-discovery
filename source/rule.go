@@ -293,40 +293,74 @@ func (m *MatchExpression) UnmarshalJSON(data []byte) error {
 }
 
 func (m *MatchExpressionSet) MatchKeys(keys map[string]feature.Nil) (bool, error) {
+	v, err := m.MatchGetKeys(keys)
+	return len(v) > 0, err
+}
+
+type MatchedKey struct {
+	Name string
+}
+
+func (m *MatchExpressionSet) MatchGetKeys(keys map[string]feature.Nil) ([]MatchedKey, error) {
+	ret := make([]MatchedKey, 0, len(*m))
+
 	for n, e := range *m {
 		match, err := e.MatchKeys(n, keys)
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 		if !match {
-			return false, nil
+			return nil, nil
 		}
+		ret = append(ret, MatchedKey{Name: n})
 	}
-	return true, nil
+	return ret, nil
 }
 
 func (m *MatchExpressionSet) MatchValues(values map[string]string) (bool, error) {
+	v, err := m.MatchGetValues(values)
+	return len(v) > 0, err
+}
+
+type MatchedValue struct {
+	Name  string
+	Value string
+}
+
+func (m *MatchExpressionSet) MatchGetValues(values map[string]string) ([]MatchedValue, error) {
+	ret := make([]MatchedValue, 0, len(*m))
+
 	for n, e := range *m {
 		match, err := e.MatchValues(n, values)
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 		if !match {
-			return false, nil
+			return nil, nil
 		}
+		ret = append(ret, MatchedValue{Name: n, Value: values[n]})
 	}
-	return true, nil
+	return ret, nil
 }
 
 func (m *MatchExpressionSet) MatchInstances(instances []feature.InstanceFeature) (bool, error) {
+	v, err := m.MatchGetInstances(instances)
+	return len(v) > 0, err
+}
+
+type MatchedInstance map[string]string
+
+func (m *MatchExpressionSet) MatchGetInstances(instances []feature.InstanceFeature) ([]MatchedInstance, error) {
+	ret := []MatchedInstance{}
+
 	for _, i := range instances {
 		if match, err := m.MatchValues(i.Attributes); err != nil {
-			return false, err
+			return nil, err
 		} else if match {
-			return true, nil
+			ret = append(ret, i.Attributes)
 		}
 	}
-	return false, nil
+	return ret, nil
 }
 
 func (m *MatchExpressionSet) UnmarshalJSON(data []byte) error {
