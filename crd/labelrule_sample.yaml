@@ -1,0 +1,7 @@
+iapiVersion: nfd.kubernetes.test/v1alpha1
+kind: LabelRule
+metadata:
+  name: my-rule
+spec:
+  rules:
+
