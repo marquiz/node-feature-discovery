@@ -110,3 +110,15 @@ sources:
             NAME: {op: InRegexp, value: ["^openSUSE.*"]}
             ID: {op: InRegexp, value: ["^open.*"]}
             VERSION_ID.major: {op: In, value: ["13", "15"]}
+
+  - name: "{{range .kernel.config}}WILDCARD-kconfig-{{.Name}}={{.Value}}\n{{end}}"
+    matchOn:
+      - kernel:
+          config:
+            "*": {op: In, value: [SWAP, X86, AARCH64]}
+
+  - name:  WILDCARD-test-sse
+    matchOn:
+      - cpu:
+          cpuid:
+            "*": {op: InRegexp, value: ["^SSE"]}

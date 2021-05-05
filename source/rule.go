@@ -69,6 +69,8 @@ var matchOps = map[MatchOp]struct{}{
 	MatchIsFalse:      struct{}{},
 }
 
+const MatchAllNames = "*"
+
 func (m *MatchOp) UnmarshalJSON(data []byte) error {
 	var raw string
 
@@ -310,6 +312,18 @@ func (m *MatchExpressionSet) MatchGetKeys(keys map[string]struct{}) ([]MatchedKe
 	}
 
 	for n, e := range *m {
+		if n == MatchAllNames {
+			// Special case for using keys as values, applying the rule on all keys
+			for k := range keys {
+				if match, err := e.Match(true, k); err != nil {
+					return nil, err
+				} else if match {
+					ret = append(ret, MatchedKey{Name: k})
+				}
+			}
+			continue
+		}
+
 		match, err := e.MatchKeys(n, keys)
 		if err != nil {
 			return nil, err
@@ -343,6 +357,18 @@ func (m *MatchExpressionSet) MatchGetValues(values map[string]string) ([]Matched
 	}
 
 	for n, e := range *m {
+		if n == MatchAllNames {
+			// Special case for using keys as values, applying the rule on all keys
+			for k, v := range values {
+				if match, err := e.Match(true, k); err != nil {
+					return nil, err
+				} else if match {
+					ret = append(ret, MatchedValue{Name: k, Value: v})
+				}
+			}
+			continue
+		}
+
 		match, err := e.MatchValues(n, values)
 		if err != nil {
 			return nil, err
