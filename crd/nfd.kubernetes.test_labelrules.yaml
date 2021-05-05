@@ -1,0 +1,99 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: labelrules.nfd.kubernetes.test
+spec:
+  group: nfd.kubernetes.test
+  names:
+    kind: LabelRule
+    listKind: LabelRuleList
+    plural: labelrules
+    singular: labelrule
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: LabelRule resource specifies a configuration for custom node labeling.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RuleSpec defines a set of labeling rules.
+            properties:
+              rules:
+                items:
+                  description: Rule defines a rule for creating on feature label.
+                  properties:
+                    matchOn:
+                      description: MatchOn specifies a list of alternative expression sets
+                      items:
+                        additionalProperties:
+                          additionalProperties:
+                            additionalProperties:
+                              description: MatchExpression defines the expression to use for matching.
+                              properties:
+                                op:
+                                  description: MatchOp is the operator to user for matching.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - InRegexp
+                                  - Exists
+                                  - DoesNotExist
+                                  - Gt
+                                  - Lt
+                                  - IsTrue
+                                  - IsFalse
+                                  type: string
+                                value:
+                                  description: MatchValue defines an array of values to use for matching.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - op
+                              type: object
+                            description: FeatureRule defines rules for one feature, matching against its attributes.
+                            type: object
+                          description: DomainRule defines per-feature rules for one domain.
+                          type: object
+                        description: MatchRule defines one complete set of rules to satisfy a successful match.
+                        type: object
+                      type: array
+                    name:
+                      description: Name of the label to be generated.
+                      type: string
+                    value:
+                      description: Value of the label, optional.
+                      type: string
+                  required:
+                  - matchOn
+                  - name
+                  type: object
+                type: array
+            required:
+            - rules
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
