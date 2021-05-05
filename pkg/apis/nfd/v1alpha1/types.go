@@ -54,6 +54,10 @@ type Rule struct {
 	// +optional
 	Value *string `json:"value,omitempty"`
 
+	// MatchOn specifies a list of alternative legacy rule sets
+	// +optional
+	MatchOn []LegacyRule `json:"matchOn"`
+
 	// MatchAny specifies a list of expression sets one of which must match
 	// +optional
 	MatchAny []MatchRule `json:"matchAny"`
@@ -72,6 +76,20 @@ type DomainRule map[string]FeatureRule
 // FeatureRule defines rules for one feature, matching against its attributes.
 type FeatureRule struct {
 	MatchExpressionSet `json:",inline"`
+}
+
+// LegacyRule defines a set of legacy rules, supported for backwards compatibility.
+type LegacyRule struct {
+	PciID      *MatchExpressionSet `json:"pciId,omitempty"`
+	UsbID      *MatchExpressionSet `json:"usbId,omitempty"`
+	LoadedKMod *MatchExpressionSet `json:"loadedKMod,omitempty"`
+	CpuID      *MatchExpressionSet `json:"cpuId,omitempty"`
+	Kconfig    *MatchExpressionSet `json:"kConfig,omitempty"`
+	Nodename   *NodenameRule       `json:"nodename,omitempty"`
+}
+
+type NodenameRule struct {
+	MatchExpression `json:",inline"`
 }
 
 // MatchExpression defines a set of MatchExpressions

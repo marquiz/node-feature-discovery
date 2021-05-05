@@ -125,6 +125,184 @@ spec:
                           satisfy a successful match.
                         type: object
                       type: array
+                    matchOn:
+                      description: MatchOn specifies a list of alternative legacy
+                        rule sets
+                      items:
+                        description: LegacyRule defines a set of legacy rules, supported
+                          for backwards compatibility.
+                        properties:
+                          cpuId:
+                            additionalProperties:
+                              description: MatchExpression defines the expression
+                                to use for matching.
+                              properties:
+                                op:
+                                  description: Op is the operand to be applied.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - InRegexp
+                                  - Exists
+                                  - DoesNotExist
+                                  - Gt
+                                  - Lt
+                                  - IsTrue
+                                  - IsFalse
+                                  type: string
+                                value:
+                                  description: Value is the list of values that the
+                                    operand is applied on.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - op
+                              type: object
+                            description: MatchExpression defines a set of MatchExpressions
+                            type: object
+                          kConfig:
+                            additionalProperties:
+                              description: MatchExpression defines the expression
+                                to use for matching.
+                              properties:
+                                op:
+                                  description: Op is the operand to be applied.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - InRegexp
+                                  - Exists
+                                  - DoesNotExist
+                                  - Gt
+                                  - Lt
+                                  - IsTrue
+                                  - IsFalse
+                                  type: string
+                                value:
+                                  description: Value is the list of values that the
+                                    operand is applied on.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - op
+                              type: object
+                            description: MatchExpression defines a set of MatchExpressions
+                            type: object
+                          loadedKMod:
+                            additionalProperties:
+                              description: MatchExpression defines the expression
+                                to use for matching.
+                              properties:
+                                op:
+                                  description: Op is the operand to be applied.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - InRegexp
+                                  - Exists
+                                  - DoesNotExist
+                                  - Gt
+                                  - Lt
+                                  - IsTrue
+                                  - IsFalse
+                                  type: string
+                                value:
+                                  description: Value is the list of values that the
+                                    operand is applied on.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - op
+                              type: object
+                            description: MatchExpression defines a set of MatchExpressions
+                            type: object
+                          nodename:
+                            properties:
+                              op:
+                                description: Op is the operand to be applied.
+                                enum:
+                                - In
+                                - NotIn
+                                - InRegexp
+                                - Exists
+                                - DoesNotExist
+                                - Gt
+                                - Lt
+                                - IsTrue
+                                - IsFalse
+                                type: string
+                              value:
+                                description: Value is the list of values that the
+                                  operand is applied on.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - op
+                            type: object
+                          pciId:
+                            additionalProperties:
+                              description: MatchExpression defines the expression
+                                to use for matching.
+                              properties:
+                                op:
+                                  description: Op is the operand to be applied.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - InRegexp
+                                  - Exists
+                                  - DoesNotExist
+                                  - Gt
+                                  - Lt
+                                  - IsTrue
+                                  - IsFalse
+                                  type: string
+                                value:
+                                  description: Value is the list of values that the
+                                    operand is applied on.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - op
+                              type: object
+                            description: MatchExpression defines a set of MatchExpressions
+                            type: object
+                          usbId:
+                            additionalProperties:
+                              description: MatchExpression defines the expression
+                                to use for matching.
+                              properties:
+                                op:
+                                  description: Op is the operand to be applied.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - InRegexp
+                                  - Exists
+                                  - DoesNotExist
+                                  - Gt
+                                  - Lt
+                                  - IsTrue
+                                  - IsFalse
+                                  type: string
+                                value:
+                                  description: Value is the list of values that the
+                                    operand is applied on.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - op
+                              type: object
+                            description: MatchExpression defines a set of MatchExpressions
+                            type: object
+                        type: object
+                      type: array
                     name:
                       description: Name of the label to be generated.
                       type: string
