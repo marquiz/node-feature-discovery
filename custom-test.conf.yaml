@@ -108,3 +108,13 @@ sources:
         vendor: ["8086"]
     - cpu.cpuid:
         AVX: {op: Exists}
+
+  - name: "{{range .kernel.config}}WILDCARD-kconfig-{{.Name}}={{.Value}}\n{{end}}"
+    matchAny:
+    - kernel.config:
+        "*": {op: In, value: [SWAP, X86, AARCH64]}
+
+  - name:  WILDCARD-test-sse
+    matchAny:
+    - cpu.cpuid:
+        "*": {op: InRegexp, value: ["^SSE"]}
