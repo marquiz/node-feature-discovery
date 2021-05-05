@@ -68,6 +68,10 @@ const (
 	MatchIsFalse      MatchOp = "IsFalse"
 )
 
+// MatchAllNames is a special key in MatchExpressionSet to use field names
+// (keys from the input) instead of values when matching.
+const MatchAllNames = "*"
+
 var matchOps = map[MatchOp]struct{}{
 	MatchAny:          struct{}{},
 	MatchIn:           struct{}{},
@@ -298,6 +302,30 @@ func (m *MatchExpressionSet) MatchGetKeys(keys map[string]feature.Nil) ([]Matche
 	}
 
 	for n, e := range *m {
+		if n == MatchAllNames {
+			// Special case for using keys as values, applying the rule on all keys
+			for k := range keys {
+				if match, err := e.Match(true, k); err != nil {
+					return nil, err
+				} else if match {
+					ret = append(ret, MatchedKey{Name: k})
+				}
+			}
+			if klog.V(3).Enabled() {
+				k := make([]string, 0, len(keys))
+				for n := range keys {
+					k = append(k, n)
+				}
+				sort.Strings(k)
+				if len(keys) < 10 || klog.V(4).Enabled() {
+					klog.Infof("matched %v when matching %q %q against %s", ret, MatchAllNames, e.Op, strings.Join(k, " "))
+				} else {
+					klog.Infof("matched %v when matching %q %q against %s... (list truncated)", ret, MatchAllNames, e.Op, strings.Join(k[0:10], ", "))
+				}
+			}
+			continue
+		}
+
 		match, err := e.MatchKeys(n, keys)
 		if err != nil {
 			return nil, err
@@ -332,6 +360,18 @@ func (m *MatchExpressionSet) MatchGetValues(values map[string]string) ([]Matched
 	}
 
 	for n, e := range *m {
+		if n == MatchAllNames {
+			// Special case for using keys as values, applying the rule on all keys
+			for k, v := range values {
+				if match, err := e.Match(true, k); err != nil {
+					return nil, err
+				} else if match {
+					ret = append(ret, MatchedValue{Name: k, Value: v})
+				}
+			}
+			continue
+		}
+
 		match, err := e.MatchValues(n, values)
 		if err != nil {
 			return nil, err
