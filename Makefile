@@ -13,6 +13,8 @@ BASE_IMAGE_MINIMAL ?= gcr.io/distroless/base
 
 MDL ?= mdl
 
+GENERATE_GROUPS_SH ?= ../code-generator/generate-groups.sh
+
 # Docker base command for working with html documentation.
 # Use host networking because 'jekyll serve' is stupid enough to use the
 # same site url than the "host" it binds to. Thus, all the links will be
@@ -125,6 +127,15 @@ mock:
 apigen:
 	protoc --go_opt=paths=source_relative --go_out=plugins=grpc:.  pkg/labeler/labeler.proto
 	controller-gen object crd output:crd:dir=crd paths=./pkg/apis/...
+	rm -rf sigs.k8s.io
+	$(GENERATE_GROUPS_SH) client,informer,lister \
+	    sigs.k8s.io/node-feature-discovery/pkg/generated \
+	    sigs.k8s.io/node-feature-discovery/pkg/apis \
+	    "nfd:v1alpha1" --output-base=.
+	rm -rf pkg/generated
+	mv sigs.k8s.io/node-feature-discovery/pkg/generated pkg/
+	rm -rf sigs.k8s.io
+
 
 gofmt:
 	@$(GO_FMT) -w -l $$(find . -name '*.go')
