@@ -26,6 +26,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
@@ -33,9 +34,7 @@ import (
 
 const Name = "custom"
 
-type Domains map[string]DomainRule
-
-type DomainRule map[string]source.MatchExpressionSet
+type Domains nfdv1alpha1.MatchRule
 
 // Custom Features Configurations
 type MatchRule struct {
@@ -299,7 +298,7 @@ func (m *MatchRule) UnmarshalJSON(data []byte) error {
 			continue
 		}
 
-		r := make(DomainRule)
+		r := make(nfdv1alpha1.DomainRule)
 		if err := json.Unmarshal(v, &r); err != nil {
 			return err
 		}

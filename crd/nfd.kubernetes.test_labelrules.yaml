@@ -45,7 +45,7 @@ spec:
                               description: MatchExpression defines the expression to use for matching.
                               properties:
                                 op:
-                                  description: MatchOp is the operator to user for matching.
+                                  description: Op is the operand to be applied.
                                   enum:
                                   - In
                                   - NotIn
@@ -58,7 +58,7 @@ spec:
                                   - IsFalse
                                   type: string
                                 value:
-                                  description: MatchValue defines an array of values to use for matching.
+                                  description: Value is the list of values that the operand is applied on.
                                   items:
                                     type: string
                                   type: array

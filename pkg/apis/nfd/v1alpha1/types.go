@@ -65,45 +65,6 @@ type MatchRule map[string]DomainRule
 type DomainRule map[string]FeatureRule
 
 // FeatureRule defines rules for one feature, matching against its attributes.
-type FeatureRule map[string]*MatchExpression
-
-// MatchExpression defines the expression to use for matching.
-type MatchExpression struct {
-	Op MatchOp `json:"op"`
-
-	// +optional
-	Value MatchValue `json:"value,omitempty"`
-}
-
-// MatchOp is the operator to user for matching.
-// +kubebuilder:validation:Enum="In";"NotIn";"InRegexp";"Exists";"DoesNotExist";"Gt";"Lt";"IsTrue";"IsFalse"
-type MatchOp string
-
-// MatchValue defines an array of values to use for matching.
-type MatchValue []string
-
-const (
-	MatchAny          MatchOp = ""
-	MatchIn           MatchOp = "In"
-	MatchNotIn        MatchOp = "NotIn"
-	MatchInRegexp     MatchOp = "InRegexp"
-	MatchExists       MatchOp = "Exists"
-	MatchDoesNotExist MatchOp = "DoesNotExist"
-	MatchGt           MatchOp = "Gt"
-	MatchLt           MatchOp = "Lt"
-	MatchIsTrue       MatchOp = "IsTrue"
-	MatchIsFalse      MatchOp = "IsFalse"
-)
-
-var matchOps = map[MatchOp]struct{}{
-	MatchAny:          struct{}{},
-	MatchIn:           struct{}{},
-	MatchNotIn:        struct{}{},
-	MatchInRegexp:     struct{}{},
-	MatchExists:       struct{}{},
-	MatchDoesNotExist: struct{}{},
-	MatchGt:           struct{}{},
-	MatchLt:           struct{}{},
-	MatchIsTrue:       struct{}{},
-	MatchIsFalse:      struct{}{},
+type FeatureRule struct {
+	MatchExpressionSet `json:",inline"`
 }

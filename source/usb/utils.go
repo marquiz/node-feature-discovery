@@ -59,7 +59,7 @@ func readSingleUsbAttribute(devPath string, attrName string) (string, error) {
 // Read information of one USB device
 func readUsbDevInfo(devPath string) (source.InstanceAttributes, error) {
 	instances := source.InstanceAttributes{}
-	info := source.InstanceAttribute{}
+	info := source.Instance{}
 
 	for _, attr := range devAttrs {
 		attrVal, _ := readSingleUsbAttribute(devPath, attr)
@@ -88,7 +88,7 @@ func readUsbDevInfo(devPath string) (source.InstanceAttributes, error) {
 				return nil, err
 			}
 
-			attr := source.InstanceAttribute{}
+			attr := source.Instance{}
 			for k, v := range info {
 				attr[k] = v
 			}

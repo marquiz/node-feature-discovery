@@ -49,8 +49,8 @@ func readSinglePciAttribute(devPath string, attrName string) (string, error) {
 }
 
 // Read information of one PCI device
-func readPciDevInfo(devPath string) (source.InstanceAttribute, error) {
-	info := source.InstanceAttribute{}
+func readPciDevInfo(devPath string) (source.Instance, error) {
+	info := source.Instance{}
 
 	for _, attr := range mandatoryDevAttrs {
 		attrVal, err := readSinglePciAttribute(devPath, attr)
