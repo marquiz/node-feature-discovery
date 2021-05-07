@@ -1,5 +1,5 @@
 /*
-Copyright 2020-2021 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package source
+package v1alpha1
 
 import (
 	"encoding/json"
@@ -28,49 +28,6 @@ import (
 
 	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 )
-
-// MatchExpression specifies an expression to evaluate against a set of input
-// values. It contains an operator that is applied when matching the input and
-// an array of values that the operator evaluates the input against.
-type MatchExpression struct {
-	// Op is the operator to be applied.
-	Op MatchOp
-
-	// Value is the list of values that the operand evaluates the input
-	// against. Value should empty if the operator is Exists, DoesNotExist,
-	// IsTrue or IsFalse.  Value should contain a single element if the
-	// operator is Gt or Lt. In other cases Value should contain at least one
-	// element.
-	Value MatchValue `json:",omitempty"`
-}
-
-// MatchExpressionSet contains a set of MatchExpressions, each of which is
-// evaluated against a set of input values.
-type MatchExpressionSet map[string]*MatchExpression
-
-// MatchOp is the match operator that is applied on values when evaluating a
-// MatchExpression.
-type MatchOp string
-
-// MatchValue is the list of values associated with a MatchExpression.
-type MatchValue []string
-
-const (
-	MatchAny          MatchOp = ""
-	MatchIn           MatchOp = "In"
-	MatchNotIn        MatchOp = "NotIn"
-	MatchInRegexp     MatchOp = "InRegexp"
-	MatchExists       MatchOp = "Exists"
-	MatchDoesNotExist MatchOp = "DoesNotExist"
-	MatchGt           MatchOp = "Gt"
-	MatchLt           MatchOp = "Lt"
-	MatchIsTrue       MatchOp = "IsTrue"
-	MatchIsFalse      MatchOp = "IsFalse"
-)
-
-// MatchAllNames is a special key in MatchExpressionSet to use field names
-// (keys from the input) instead of values when matching.
-const MatchAllNames = "*"
 
 var matchOps = map[MatchOp]struct{}{
 	MatchAny:          struct{}{},
