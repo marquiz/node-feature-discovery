@@ -17,50 +17,24 @@ limitations under the License.
 package custom
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
-	"text/template"
 
 	"k8s.io/klog/v2"
 
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
-	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
+	"sigs.k8s.io/node-feature-discovery/source/cpu"
+	"sigs.k8s.io/node-feature-discovery/source/kernel"
+	"sigs.k8s.io/node-feature-discovery/source/pci"
+	"sigs.k8s.io/node-feature-discovery/source/system"
+	"sigs.k8s.io/node-feature-discovery/source/usb"
 )
 
 const Name = "custom"
 
-type Domains nfdv1alpha1.MatchRule
-
-// Custom Features Configurations
-type MatchRule struct {
-	Domains
-	Legacy
-}
-
-// Legacy rules
-type Legacy struct {
-	PciID      *rules.PciIDRule      `json:"pciId,omitempty"`
-	UsbID      *rules.UsbIDRule      `json:"usbId,omitempty"`
-	LoadedKMod *rules.LoadedKModRule `json:"loadedKMod,omitempty"`
-	CpuID      *rules.CpuIDRule      `json:"cpuId,omitempty"`
-	Kconfig    *rules.KconfigRule    `json:"kConfig,omitempty"`
-	Nodename   *rules.NodenameRule   `json:"nodename,omitempty"`
-}
-
-type FeatureSpec struct {
-	Name    string      `json:"name"`
-	Value   *string     `json:"value,omitempty"`
-	MatchOn []MatchRule `json:"matchOn"`
-
-	nameTemplate *template.Template
-}
-
-type config []FeatureSpec
+type config []nfdv1alpha1.Rule
 
 // newDefaultConfig returns a new config with pre-populated defaults
 func newDefaultConfig() *config {
@@ -98,12 +72,6 @@ func (s *customSource) SetConfig(c source.Config) {
 
 	// Parse template rules
 	conf := c.(*config)
-	for i, spec := range *conf {
-		if strings.Contains(spec.Name, "{{") {
-			(*conf)[i].nameTemplate = template.Must(template.New("").Option("missingkey=error").Parse(spec.Name))
-		}
-	}
-
 	s.config = conf
 }
 
@@ -124,7 +92,7 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 	utils.KlogDump(2, "custom features configuration:", "  ", allFeatureConfig)
 	// Iterate over features
 	for _, spec := range allFeatureConfig {
-		features, err := spec.discover(domainFeatures)
+		features, err := discover(spec, domainFeatures)
 		if err != nil {
 			klog.Errorf("failed to discover feature: %q: %s", spec.Name, err.Error())
 			continue
@@ -138,14 +106,14 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 
 // Process a single feature spec by Matching on the defined rules.
 // A feature is present if all defined Rules in a MatchRule return a match.
-func (s *FeatureSpec) discover(features map[string]source.Features) (map[string]string, error) {
+func discover(rule nfdv1alpha1.Rule, features map[string]source.Features) (map[string]string, error) {
 	ret := make(map[string]string)
 
-	for _, matchRules := range s.MatchOn {
-		if match, err := matchRules.Legacy.match(); err != nil {
+	for _, matchRules := range rule.MatchOn {
+		if matchedLegacy, err := matchLegacy(matchRules.Legacy, features); err != nil {
 			return nil, err
-		} else if match {
-			matched, err := matchRules.Domains.match(features)
+		} else if matchedLegacy {
+			matched, err := matchDomains(matchRules.Domains, features)
 			if err != nil {
 				return nil, err
 			} else if matched == nil {
@@ -153,26 +121,23 @@ func (s *FeatureSpec) discover(features map[string]source.Features) (map[string]
 			}
 
 			// We have a match
-			expandedName := s.Name
-			if s.nameTemplate != nil {
-				// Execute template to produce an array of labels
-				var tmp bytes.Buffer
-				if err := s.nameTemplate.Execute(&tmp, matched); err != nil {
-					return nil, err
-				}
-				expandedName = tmp.String()
+			name, err := rule.ExpandName(matched)
+			if err != nil {
+				return nil, err
 			}
 
 			// Split out individual labels
-			for _, item := range strings.Split(expandedName, "\n") {
+			for _, item := range strings.Split(name, "\n") {
 				// Remove leading/trailing whitespace and skip empty lines
 				if trimmed := strings.TrimSpace(item); trimmed != "" {
-					n, v := s.getNameValue(trimmed)
+					n, v := getNameValue(rule, trimmed)
 					ret[n] = v
 				}
 			}
 
-			if s.nameTemplate == nil {
+			if isTemplate, err := rule.NameIsTemplate(); err != nil {
+				return nil, err
+			} else if !isTemplate {
 				// No templating so we stop here (further matches would just
 				// produce the same labels)
 				break
@@ -182,7 +147,7 @@ func (s *FeatureSpec) discover(features map[string]source.Features) (map[string]
 	return ret, nil
 }
 
-func (s *FeatureSpec) getNameValue(name string) (string, string) {
+func getNameValue(rule nfdv1alpha1.Rule, name string) (string, string) {
 	// Value can be overridden in Name with "key=value". This is useful for
 	// templates.
 	if strings.ContainsRune(name, '=') {
@@ -190,8 +155,8 @@ func (s *FeatureSpec) getNameValue(name string) (string, string) {
 		return split[0], split[1]
 	}
 
-	if s.Value != nil {
-		return name, *s.Value
+	if rule.Value != nil {
+		return name, *rule.Value
 	}
 
 	return name, "true"
@@ -199,10 +164,10 @@ func (s *FeatureSpec) getNameValue(name string) (string, string) {
 
 type domainMatchedFeatures map[string]interface{}
 
-func (r *Domains) match(features map[string]source.Features) (map[string]domainMatchedFeatures, error) {
-	ret := make(map[string]domainMatchedFeatures, len(*r))
+func matchDomains(domains map[string]nfdv1alpha1.DomainRule, features map[string]source.Features) (map[string]domainMatchedFeatures, error) {
+	ret := make(map[string]domainMatchedFeatures, len(domains))
 
-	for domain, rules := range *r {
+	for domain, rules := range domains {
 		domainFeatures, ok := features[domain]
 		if !ok {
 			return nil, fmt.Errorf("unknown feature source/domain %q", domain)
@@ -247,78 +212,60 @@ func (r *Domains) match(features map[string]source.Features) (map[string]domainM
 	return ret, nil
 }
 
-func (r *Legacy) match() (bool, error) {
-	allRules := []source.CustomRule{
-		r.PciID,
-		r.UsbID,
-		r.LoadedKMod,
-		r.CpuID,
-		r.Kconfig,
-		r.Nodename,
+func matchLegacy(rules nfdv1alpha1.Legacy, features map[string]source.Features) (bool, error) {
+	if rules.CpuID != nil {
+		if f, ok := features[cpu.Name].Keys[cpu.CpuidFeature]; !ok {
+			return false, fmt.Errorf("cpuid information not available")
+		} else if match, err := rules.CpuID.MatchKeys(f); !match || err != nil {
+			return match, err
+		}
 	}
 
-	// return true, nil if all rules match
-	matchRules := func(rules []source.CustomRule) (bool, error) {
-		for _, rule := range rules {
-			if reflect.ValueOf(rule).IsNil() {
-				continue
+	if rules.LoadedKMod != nil {
+		if f, ok := features[kernel.Name].Keys[kernel.LoadedModuleFeature]; !ok {
+			return false, fmt.Errorf("information about loaded modules not available")
+		} else if match, err := rules.LoadedKMod.MatchKeys(f); !match || err != nil {
+			return match, err
+		}
+	}
+
+	if rules.Kconfig != nil {
+		if f, ok := features[kernel.Name].Values[kernel.ConfigFeature]; !ok {
+			return false, fmt.Errorf("kernel config options not available")
+		} else if match, err := rules.Kconfig.MatchValues(f); !match || err != nil {
+			return match, err
+		}
+	}
+
+	if rules.PciID != nil {
+		if f, ok := features[pci.Name].Instances[pci.DeviceFeature]; !ok {
+			return false, fmt.Errorf("pci device information not available")
+		} else if match, err := rules.PciID.MatchInstances(f); !match || err != nil {
+			return match, err
+		}
+	}
+
+	if rules.UsbID != nil {
+		if f, ok := features[usb.Name].Instances[usb.DeviceFeature]; !ok {
+			return false, fmt.Errorf("usb device information not available")
+		} else if match, err := rules.UsbID.MatchInstances(f); !match || err != nil {
+			return match, err
+		}
+	}
+
+	if rules.Nodename != nil {
+		if f, ok := features[system.Name].Values[system.NameFeature]; !ok {
+			return false, fmt.Errorf("system name information not available")
+		} else {
+			n, ok := f["nodename"]
+			if match, err := rules.Nodename.MatchExpression.Match(ok, n); !match || err != nil {
+				return match, err
 			}
-			if match, err := rule.Match(); err != nil {
-				return false, err
-			} else if !match {
-				return false, nil
-			}
 		}
-		return true, nil
 	}
-
-	return matchRules(allRules)
+	return true, nil
 }
-
-func (m *MatchRule) UnmarshalJSON(data []byte) error {
-	rule := &MatchRule{Domains: make(Domains)}
-
-	// First, unmarshal legacy rules
-	if err := json.Unmarshal(data, &rule.Legacy); err != nil {
-		return err
-	}
-
-	// Next, unmarshal per-domain rules.
-	// Start with unmarshalling into a map without trying to decode values
-	raw := map[string]json.RawMessage{}
-	err := json.Unmarshal(data, &raw)
-	if err != nil {
-		return err
-	}
-	// Continue with decoding one domain at a time, skipping names that are
-	// "registered" as legacy rules
-	for k, v := range raw {
-		k = strings.ToLower(k)
-		if _, ok := legacyRuleNames[k]; ok {
-			continue
-		}
-
-		r := make(nfdv1alpha1.DomainRule)
-		if err := json.Unmarshal(v, &r); err != nil {
-			return err
-		}
-		rule.Domains[k] = r
-	}
-
-	*m = *rule
-	return nil
-}
-
-var legacyRuleNames map[string]struct{}
 
 func init() {
 	source.Register(&src)
-
-	// Get fields names of Legacy
-	v := reflect.ValueOf(Legacy{})
-	legacyRuleNames = make(map[string]struct{}, v.NumField())
-	for i := 0; i < v.NumField(); i++ {
-		name := v.Type().Field(i).Name
-		legacyRuleNames[strings.ToLower(name)] = struct{}{}
-	}
 }

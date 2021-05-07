@@ -17,6 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"bytes"
+	"fmt"
+	"strings"
+	"text/template"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -57,10 +62,18 @@ type Rule struct {
 
 	// MatchOn specifies a list of alternative expression sets
 	MatchOn []MatchRule `json:"matchOn"`
+
+	// nameExpander is a private helper/cache for handling golang templates
+	name *nameExpander `json:"-"`
 }
 
 // MatchRule defines one complete set of rules to satisfy a successful match.
-type MatchRule map[string]DomainRule
+type MatchRule struct {
+	Domains map[string]DomainRule `json:",inline"`
+
+	// Legacy
+	Legacy Legacy `json:"-"`
+}
 
 // DomainRule defines per-feature rules for one domain.
 type DomainRule map[string]FeatureRule
@@ -68,4 +81,54 @@ type DomainRule map[string]FeatureRule
 // FeatureRule defines rules for one feature, matching against its attributes.
 type FeatureRule struct {
 	MatchExpressionSet `json:",inline"`
+}
+
+type nameExpander struct {
+	nameTemplate *template.Template
+}
+
+func newNameExpander(name string) (*nameExpander, error) {
+	e := nameExpander{}
+
+	if strings.Contains(name, "{{") {
+
+		tmpl, err := template.New("").Option("missingkey=error").Parse(name)
+		if err != nil {
+			return nil, fmt.Errorf("invalid template in rule name: %w", err)
+		}
+		e.nameTemplate = tmpl
+	}
+	return &e, nil
+}
+
+func (e *nameExpander) expand(data interface{}) (string, error) {
+	if e.nameTemplate == nil {
+		return "", fmt.Errorf("not a template")
+	}
+	var tmp bytes.Buffer
+	if err := e.nameTemplate.Execute(&tmp, data); err != nil {
+		return "", err
+	}
+	return tmp.String(), nil
+}
+
+func (r *Rule) ExpandName(data interface{}) (string, error) {
+	if isTemplate, err := r.NameIsTemplate(); err != nil {
+		return "", err
+	} else if isTemplate {
+		return r.name.expand(data)
+	}
+	return r.Name, nil
+}
+
+func (r *Rule) NameIsTemplate() (bool, error) {
+	if r.name == nil {
+		n, err := newNameExpander(r.Name)
+		if err != nil {
+			return true, err
+		}
+		r.name = n
+	}
+
+	return r.name.nameTemplate != nil, nil
 }

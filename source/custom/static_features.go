@@ -18,20 +18,19 @@ package custom
 
 import (
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/v1alpha1"
-	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
 )
 
 // getStaticFeatures returns statically configured custom features to discover
 // e.g RMDA related features. NFD configuration file may extend these custom features by adding rules.
-func getStaticFeatureConfig() []FeatureSpec {
-	return []FeatureSpec{
-		FeatureSpec{
+func getStaticFeatureConfig() []nfdv1alpha1.Rule {
+	return []nfdv1alpha1.Rule{
+		nfdv1alpha1.Rule{
 			Name: "rdma.capable",
-			MatchOn: []MatchRule{
-				MatchRule{
-					Legacy: Legacy{
-						PciID: &rules.PciIDRule{
-							nfdv1alpha1.MatchExpressionSet{
+			MatchOn: []nfdv1alpha1.MatchRule{
+				nfdv1alpha1.MatchRule{
+					Legacy: nfdv1alpha1.Legacy{
+						PciID: &nfdv1alpha1.MatchExpressionSet{
+							Expressions: nfdv1alpha1.Expressions{
 								"vendor": nfdv1alpha1.NewMatchExpression(nfdv1alpha1.MatchIn, "15b3"),
 							},
 						},
@@ -39,13 +38,13 @@ func getStaticFeatureConfig() []FeatureSpec {
 				},
 			},
 		},
-		FeatureSpec{
+		nfdv1alpha1.Rule{
 			Name: "rdma.available",
-			MatchOn: []MatchRule{
-				MatchRule{
-					Legacy: Legacy{
-						LoadedKMod: &rules.LoadedKModRule{
-							nfdv1alpha1.MatchExpressionSet{
+			MatchOn: []nfdv1alpha1.MatchRule{
+				nfdv1alpha1.MatchRule{
+					Legacy: nfdv1alpha1.Legacy{
+						LoadedKMod: &nfdv1alpha1.MatchExpressionSet{
+							Expressions: nfdv1alpha1.Expressions{
 								"ib_uverbs": nfdv1alpha1.NewMatchExpression(nfdv1alpha1.MatchExists),
 								"rdma_ucm":  nfdv1alpha1.NewMatchExpression(nfdv1alpha1.MatchExists),
 							},
