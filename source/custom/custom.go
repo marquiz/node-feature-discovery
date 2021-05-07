@@ -17,46 +17,17 @@ limitations under the License.
 package custom
 
 import (
-	"bytes"
-	"fmt"
-	"reflect"
-	"strings"
-	"text/template"
-
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
-	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
 )
 
 const Name = "custom"
 
-type DomainsRule nfdv1alpha1.MatchRule
-
-// Legacy rules
-type LegacyRule struct {
-	PciID      *rules.PciIDRule      `json:"pciId,omitempty"`
-	UsbID      *rules.UsbIDRule      `json:"usbId,omitempty"`
-	LoadedKMod *rules.LoadedKModRule `json:"loadedKMod,omitempty"`
-	CpuID      *rules.CpuIDRule      `json:"cpuId,omitempty"`
-	Kconfig    *rules.KconfigRule    `json:"kConfig,omitempty"`
-	Nodename   *rules.NodenameRule   `json:"nodename,omitempty"`
-}
-
-type FeatureSpec struct {
-	Name     string        `json:"name"`
-	Value    *string       `json:"value,omitempty"`
-	MatchOn  []LegacyRule  `json:"matchOn"`
-	MatchAny []DomainsRule `json:"matchAny"`
-	MatchAll []DomainsRule `json:"matchAll"`
-
-	nameTemplate *template.Template
-}
-
-type config []FeatureSpec
+type config []nfdv1alpha1.Rule
 
 // newDefaultConfig returns a new config with pre-populated defaults
 func newDefaultConfig() *config {
@@ -94,12 +65,6 @@ func (s *customSource) SetConfig(c source.Config) {
 
 	// Parse template rules
 	conf := c.(*config)
-	for i, spec := range *conf {
-		if strings.Contains(spec.Name, "{{") {
-			(*conf)[i].nameTemplate = template.Must(template.New("").Option("missingkey=error").Parse(spec.Name))
-		}
-	}
-
 	s.config = conf
 }
 
@@ -119,10 +84,10 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 	allFeatureConfig = append(allFeatureConfig, getDirectoryFeatureConfig()...)
 	utils.KlogDump(2, "custom features configuration:", "  ", allFeatureConfig)
 	// Iterate over features
-	for _, spec := range allFeatureConfig {
-		features, err := spec.discover(domainFeatures)
+	for _, rule := range allFeatureConfig {
+		features, err := rule.Match(domainFeatures)
 		if err != nil {
-			klog.Errorf("failed to discover feature: %q: %s", spec.Name, err.Error())
+			klog.Errorf("failed to discover feature: %q: %s", rule.Name, err.Error())
 			continue
 		}
 		for k, v := range features {
@@ -130,195 +95,6 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 		}
 	}
 	return labels, nil
-}
-
-// Process a single feature by Matching on the defined rules.
-func (s *FeatureSpec) discover(features map[string]*feature.DomainFeatures) (map[string]string, error) {
-	ret := make(map[string]string)
-
-	if len(s.MatchOn) > 0 {
-		// Logical OR over the legacy rules
-		matched := false
-		for _, matchRule := range s.MatchOn {
-			if m, err := matchRule.match(); err != nil {
-				return nil, err
-			} else if m {
-				matched = true
-
-				if err := s.expandTemplate(nil, ret); err != nil {
-					return nil, err
-				}
-
-				break
-			}
-		}
-		if !matched {
-			return nil, nil
-		}
-	}
-
-	if len(s.MatchAny) > 0 {
-		// Logical OR over the matchAny domains rules
-		matched := false
-		for _, matchRule := range s.MatchAny {
-			if m, err := matchRule.match(features); err != nil {
-				return nil, err
-			} else if m != nil {
-				matched = true
-				utils.KlogDump(4, "matches for matchAny "+s.Name, "  ", m)
-
-				if err := s.expandTemplate(m, ret); err != nil {
-					return nil, err
-				}
-
-				if s.nameTemplate == nil {
-					// No templating so we stop here (further matches would just
-					// produce the same labels)
-					break
-				}
-			}
-		}
-		if !matched {
-			return nil, nil
-		}
-	}
-
-	if len(s.MatchAll) > 0 {
-		// Logical AND over the matchAny domains rules
-		for _, matchRule := range s.MatchAll {
-			if m, err := matchRule.match(features); err != nil {
-				return nil, err
-			} else if m == nil {
-				return nil, nil
-			} else {
-
-				utils.KlogDump(4, "matches for matchAll "+s.Name, "  ", m)
-				if err := s.expandTemplate(m, ret); err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
-
-	// We have a match
-	return ret, nil
-}
-
-func (s *FeatureSpec) expandTemplate(in matchedFeatures, out map[string]string) error {
-	expandedName := s.Name
-	if s.nameTemplate != nil {
-		// Execute template to produce an array of labels
-		var tmp bytes.Buffer
-		if err := s.nameTemplate.Execute(&tmp, in); err != nil {
-			return err
-		}
-		expandedName = tmp.String()
-	}
-
-	// Split out individual labels
-	for _, item := range strings.Split(expandedName, "\n") {
-		// Remove leading/trailing whitespace and skip empty lines
-		if trimmed := strings.TrimSpace(item); trimmed != "" {
-			n, v := s.getNameValue(trimmed)
-			out[n] = v
-		}
-	}
-	return nil
-}
-
-func (s *FeatureSpec) getNameValue(name string) (string, string) {
-	// Value can be overridden in Name with "key=value". This is useful for
-	// templates.
-	if strings.ContainsRune(name, '=') {
-		split := strings.SplitN(name, "=", 2)
-		return split[0], split[1]
-	}
-
-	if s.Value != nil {
-		return name, *s.Value
-	}
-
-	return name, "true"
-}
-
-type matchedFeatures map[string]domainMatchedFeatures
-
-type domainMatchedFeatures map[string]interface{}
-
-func (r *DomainsRule) match(features map[string]*feature.DomainFeatures) (matchedFeatures, error) {
-	ret := make(matchedFeatures, len(*r))
-
-	for domain, rules := range *r {
-		domainFeatures, ok := features[domain]
-		if !ok {
-			return nil, fmt.Errorf("unknown feature source/domain %q", domain)
-		}
-
-		// Matched features
-		matched := make(domainMatchedFeatures)
-
-		for featureName, featureRules := range rules {
-			var m bool
-			var e error
-
-			// Ignore case
-			featureName = strings.ToLower(featureName)
-
-			if f, ok := domainFeatures.Keys[featureName]; ok {
-				v, err := featureRules.MatchGetKeys(f.Features)
-				m = len(v) > 0
-				e = err
-				matched[featureName] = v
-			} else if f, ok := domainFeatures.Values[featureName]; ok {
-				v, err := featureRules.MatchGetValues(f.Features)
-				m = len(v) > 0
-				e = err
-				matched[featureName] = v
-			} else if f, ok := domainFeatures.Instances[featureName]; ok {
-				v, err := featureRules.MatchGetInstances(f.Features)
-				m = len(v) > 0
-				e = err
-				matched[featureName] = v
-			} else {
-				return nil, fmt.Errorf("%q feature of source/domain %q not available", featureName, domain)
-			}
-			if e != nil {
-				return nil, e
-			} else if !m {
-				return nil, nil
-			}
-		}
-		ret[domain] = matched
-	}
-	return ret, nil
-}
-
-func (r *LegacyRule) match() (bool, error) {
-	allRules := []source.CustomRule{
-		r.PciID,
-		r.UsbID,
-		r.LoadedKMod,
-		r.CpuID,
-		r.Kconfig,
-		r.Nodename,
-	}
-
-	// return true, nil if all rules match
-	matchRules := func(rules []source.CustomRule) (bool, error) {
-		for _, rule := range rules {
-			if reflect.ValueOf(rule).IsNil() {
-				continue
-			}
-			if match, err := rule.Match(); err != nil {
-				return false, err
-			} else if !match {
-				return false, nil
-			}
-		}
-		return true, nil
-	}
-
-	return matchRules(allRules)
 }
 
 func init() {
