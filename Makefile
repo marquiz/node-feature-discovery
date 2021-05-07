@@ -131,7 +131,8 @@ apigen:
 	$(GENERATE_GROUPS_SH) client,informer,lister \
 	    sigs.k8s.io/node-feature-discovery/pkg/generated \
 	    sigs.k8s.io/node-feature-discovery/pkg/apis \
-	    "nfd:v1alpha1" --output-base=.
+	    "nfd:v1alpha1" --output-base=. \
+	    --go-header-file hack/boilerplate.go.txt
 	rm -rf pkg/generated
 	mv sigs.k8s.io/node-feature-discovery/pkg/generated pkg/
 	rm -rf sigs.k8s.io
