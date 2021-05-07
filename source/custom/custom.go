@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
+	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 	"sigs.k8s.io/node-feature-discovery/source/custom/rules"
@@ -33,7 +34,7 @@ import (
 
 const Name = "custom"
 
-type MatchRule map[string]source.MatchExpressionSet
+type MatchRule nfdv1alpha1.MatchRule
 
 // Legacy rules
 type LegacyRule struct {

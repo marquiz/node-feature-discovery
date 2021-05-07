@@ -111,3 +111,7 @@ const (
 	MatchIsTrue       MatchOp = "IsTrue"
 	MatchIsFalse      MatchOp = "IsFalse"
 )
+
+// MatchAllNames is a special key in MatchExpressionSet to use field names
+// (keys from the input) instead of values when matching.
+const MatchAllNames = "*"
