@@ -27,8 +27,17 @@ import (
 	"k8s.io/klog/v2"
 )
 
+// Expressions is a helper type to work around issues with k8s deepcopy-gen
+type Expressions map[string]*MatchExpression
+
 // MatchExpression defines a set of MatchExpressions
-type MatchExpressionSet map[string]*MatchExpression
+type MatchExpressionSet struct {
+	Expressions `json:",inline"`
+}
+
+func (e *Expressions) Len() int {
+	return len(*e)
+}
 
 // MatchExpression defines the expression to use for matching.
 type MatchExpression struct {
@@ -75,6 +84,10 @@ var matchOps = map[MatchOp]struct{}{
 	MatchLt:           struct{}{},
 	MatchIsTrue:       struct{}{},
 	MatchIsFalse:      struct{}{},
+}
+
+func NewMatchExpressionSet() *MatchExpressionSet {
+	return &MatchExpressionSet{Expressions: make(Expressions)}
 }
 
 func NewMatchExpression(op MatchOp, values ...string) *MatchExpression {
@@ -263,16 +276,16 @@ type MatchedKey struct {
 }
 
 func (m *MatchExpressionSet) MatchGetKeys(keys map[string]struct{}) ([]MatchedKey, error) {
-	ret := make([]MatchedKey, 0, len(*m))
+	ret := make([]MatchedKey, 0, m.Len())
 
 	// An empty rule matches all keys
-	if len(*m) == 0 {
+	if m.Len() == 0 {
 		for n := range keys {
 			ret = append(ret, MatchedKey{Name: n})
 		}
 	}
 
-	for n, e := range *m {
+	for n, e := range (*m).Expressions {
 		if n == MatchAllNames {
 			// Special case for using keys as values, applying the rule on all keys
 			for k := range keys {
@@ -308,16 +321,16 @@ type MatchedValue struct {
 }
 
 func (m *MatchExpressionSet) MatchGetValues(values map[string]string) ([]MatchedValue, error) {
-	ret := make([]MatchedValue, 0, len(*m))
+	ret := make([]MatchedValue, 0, m.Len())
 
 	// An empty rule matches all values
-	if len(*m) == 0 {
+	if m.Len() == 0 {
 		for n, v := range values {
 			ret = append(ret, MatchedValue{Name: n, Value: v})
 		}
 	}
 
-	for n, e := range *m {
+	for n, e := range (*m).Expressions {
 		if n == MatchAllNames {
 			// Special case for using keys as values, applying the rule on all keys
 			for k, v := range values {
@@ -363,7 +376,7 @@ func (m *MatchExpressionSet) MatchGetInstances(instances []Instance) ([]Instance
 }
 
 func (m *MatchExpressionSet) UnmarshalJSON(data []byte) error {
-	*m = make(MatchExpressionSet)
+	*m = *NewMatchExpressionSet()
 
 	names := make([]string, 0)
 	if err := json.Unmarshal(data, &names); err == nil {
@@ -371,9 +384,9 @@ func (m *MatchExpressionSet) UnmarshalJSON(data []byte) error {
 		for _, name := range names {
 			split := strings.SplitN(name, "=", 2)
 			if len(split) == 1 {
-				(*m)[split[0]] = NewMatchExpression(MatchExists)
+				(*m).Expressions[split[0]] = NewMatchExpression(MatchExists)
 			} else {
-				(*m)[split[0]] = NewMatchExpression(MatchIn, split[1])
+				(*m).Expressions[split[0]] = NewMatchExpression(MatchIn, split[1])
 			}
 		}
 	} else {
@@ -385,9 +398,9 @@ func (m *MatchExpressionSet) UnmarshalJSON(data []byte) error {
 		} else {
 			for k, v := range expressions {
 				if v != nil {
-					(*m)[k] = v
+					(*m).Expressions[k] = v
 				} else {
-					(*m)[k] = NewMatchExpression(MatchExists)
+					(*m).Expressions[k] = NewMatchExpression(MatchExists)
 				}
 			}
 		}
