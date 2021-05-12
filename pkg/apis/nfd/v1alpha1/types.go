@@ -93,7 +93,12 @@ type NodenameRule struct {
 }
 
 // MatchExpression defines a set of MatchExpressions
-type MatchExpressionSet map[string]*MatchExpression
+type MatchExpressionSet struct {
+	Expressions `json:",inline"`
+}
+
+// Expressions is a helper type to work around issues with k8s deepcopy-gen
+type Expressions map[string]*MatchExpression
 
 // MatchExpression defines the expression to use for matching.
 type MatchExpression struct {
