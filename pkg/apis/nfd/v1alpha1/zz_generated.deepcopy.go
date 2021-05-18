@@ -429,8 +429,7 @@ func (in *Rule) DeepCopyInto(out *Rule) {
 	}
 	if in.name != nil {
 		in, out := &in.name, &out.name
-		*out = new(nameExpander)
-		(*in).DeepCopyInto(*out)
+		*out = (*in).DeepCopy()
 	}
 }
 
