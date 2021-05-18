@@ -70,6 +70,22 @@ func newNameTemplateHelper(name string) (*nameTemplateHelper, error) {
 	return &e, nil
 }
 
+// DeepCopy is a stub to augment the auto-generated code
+func (in *nameTemplateHelper) DeepCopy() *nameTemplateHelper {
+	if in == nil {
+		return nil
+	}
+	out := new(nameTemplateHelper)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is a stub to augment the auto-generated code
+func (in *nameTemplateHelper) DeepCopyInto(out *nameTemplateHelper) {
+	// HACK: just re-use the template
+	out.nameTemplate = in.nameTemplate
+}
+
 func (e *nameTemplateHelper) expand(data interface{}) (string, error) {
 	if e.nameTemplate == nil {
 		return e.name, nil
