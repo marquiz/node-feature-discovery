@@ -101,6 +101,22 @@ func newNameExpander(name string) (*nameExpander, error) {
 	return &e, nil
 }
 
+// DeepCopy is a stub to augment the auto-generated code
+func (in *nameExpander) DeepCopy() *nameExpander {
+	if in == nil {
+		return nil
+	}
+	out := new(nameExpander)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is a stub to augment the auto-generated code
+func (in *nameExpander) DeepCopyInto(out *nameExpander) {
+	// HACK: just re-use the template
+	out.nameTemplate = in.nameTemplate
+}
+
 func (e *nameExpander) expand(data interface{}) (string, error) {
 	if e.nameTemplate == nil {
 		return "", fmt.Errorf("not a template")
