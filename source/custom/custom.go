@@ -92,7 +92,7 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 	utils.KlogDump(2, "custom features configuration:", "  ", allFeatureConfig)
 	// Iterate over features
 	for _, spec := range allFeatureConfig {
-		features, err := discover(spec, domainFeatures)
+		features, err := MatchRule(&spec, domainFeatures)
 		if err != nil {
 			klog.Errorf("failed to discover feature: %q: %s", spec.Name, err.Error())
 			continue
@@ -104,9 +104,8 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 	return labels, nil
 }
 
-// Process a single feature spec by Matching on the defined rules.
-// A feature is present if all defined Rules in a MatchRule return a match.
-func discover(rule nfdv1alpha1.Rule, features map[string]source.Features) (map[string]string, error) {
+// MatchRule processes a single feature rule.
+func MatchRule(rule *nfdv1alpha1.Rule, features map[string]source.Features) (map[string]string, error) {
 	ret := make(map[string]string)
 
 	for _, matchRules := range rule.MatchOn {
@@ -147,7 +146,7 @@ func discover(rule nfdv1alpha1.Rule, features map[string]source.Features) (map[s
 	return ret, nil
 }
 
-func getNameValue(rule nfdv1alpha1.Rule, name string) (string, string) {
+func getNameValue(rule *nfdv1alpha1.Rule, name string) (string, string) {
 	// Value can be overridden in Name with "key=value". This is useful for
 	// templates.
 	if strings.ContainsRune(name, '=') {
