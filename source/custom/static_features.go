@@ -26,7 +26,9 @@ import (
 func getStaticFeatureConfig() []FeatureSpec {
 	return []FeatureSpec{
 		FeatureSpec{
-			Name: "rdma.capable",
+			Rule: nfdv1alpha1.Rule{
+				Name: "rdma.capable",
+			},
 			MatchOn: []LegacyRule{
 				LegacyRule{
 					PciID: &rules.PciIDRule{
@@ -40,7 +42,9 @@ func getStaticFeatureConfig() []FeatureSpec {
 			},
 		},
 		FeatureSpec{
-			Name: "rdma.available",
+			Rule: nfdv1alpha1.Rule{
+				Name: "rdma.available",
+			},
 			MatchOn: []LegacyRule{
 				LegacyRule{
 					LoadedKMod: &rules.LoadedKModRule{
