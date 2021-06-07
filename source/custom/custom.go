@@ -17,11 +17,7 @@ limitations under the License.
 package custom
 
 import (
-	"bytes"
-	"fmt"
 	"reflect"
-	"strings"
-	"text/template"
 
 	"k8s.io/klog/v2"
 
@@ -34,8 +30,6 @@ import (
 
 const Name = "custom"
 
-type MatchRule nfdv1alpha1.MatchRule
-
 // Legacy rules
 type LegacyRule struct {
 	PciID      *rules.PciIDRule      `json:"pciId,omitempty"`
@@ -47,13 +41,9 @@ type LegacyRule struct {
 }
 
 type FeatureSpec struct {
-	Name     string       `json:"name"`
-	Value    *string      `json:"value,omitempty"`
-	MatchOn  []LegacyRule `json:"matchOn"`
-	MatchAny []MatchRule  `json:"matchAny"`
-	MatchAll []MatchRule  `json:"matchAll"`
+	nfdv1alpha1.Rule
 
-	nameTemplate *template.Template
+	MatchOn []LegacyRule `json:"matchOn"`
 }
 
 type config []FeatureSpec
@@ -99,12 +89,6 @@ func (s *customSource) SetConfig(c source.Config) {
 
 	// Parse template rules
 	conf := c.(*config)
-	for i, spec := range *conf {
-		if strings.Contains(spec.Name, "{{") {
-			(*conf)[i].nameTemplate = template.Must(template.New("").Option("missingkey=error").Parse(spec.Name))
-		}
-	}
-
 	s.config = conf
 }
 
@@ -125,7 +109,7 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 	utils.KlogDump(2, "custom features configuration:", "  ", allFeatureConfig)
 	// Iterate over features
 	for _, spec := range allFeatureConfig {
-		ruleOut, err := spec.discover(domainFeatures)
+		ruleOut, err := spec.Match(domainFeatures)
 		if err != nil {
 			klog.Errorf("failed to discover feature: %q: %s", spec.Name, err.Error())
 			continue
@@ -138,8 +122,14 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 }
 
 // Process a single feature by Matching on the defined rules.
-func (s *FeatureSpec) discover(features map[string]*feature.DomainFeatures) (map[string]string, error) {
-	ret := make(map[string]string)
+func (s *FeatureSpec) Match(features map[string]*feature.DomainFeatures) (map[string]string, error) {
+	ret, err := s.Rule.Match(features)
+	if err != nil {
+		return nil, err
+	} else if ret == nil {
+		// No match
+		return nil, err
+	}
 
 	if len(s.MatchOn) > 0 {
 		// Logical OR over the legacy rules
@@ -150,151 +140,17 @@ func (s *FeatureSpec) discover(features map[string]*feature.DomainFeatures) (map
 			} else if m {
 				matched = true
 
-				if err := s.expandName(nil, ret); err != nil {
-					return nil, err
+				// Only expand if no matchAny/matchAll rules were run
+				if len(ret) == 0 {
+					if err := s.Rule.ExpandName(nil, ret); err != nil {
+						return nil, err
+					}
 				}
 
 				break
 			}
 		}
 		if !matched {
-			return nil, nil
-		}
-	}
-
-	if len(s.MatchAny) > 0 {
-		// Logical OR over the matchAny domains rules
-		matched := false
-		for _, matchRule := range s.MatchAny {
-			if m, err := matchRule.match(features); err != nil {
-				return nil, err
-			} else if m != nil {
-				matched = true
-				utils.KlogDump(4, "matches for matchAny "+s.Name, "  ", m)
-
-				if err := s.expandName(m, ret); err != nil {
-					return nil, err
-				}
-
-				if s.nameTemplate == nil {
-					// No templating so we stop here (further matches would just
-					// produce the same labels)
-					break
-				}
-			}
-		}
-		if !matched {
-			return nil, nil
-		}
-	}
-
-	if len(s.MatchAll) > 0 {
-		// Logical AND over the matchAny domains rules
-		for _, matchRule := range s.MatchAll {
-			if m, err := matchRule.match(features); err != nil {
-				return nil, err
-			} else if m == nil {
-				return nil, nil
-			} else {
-
-				utils.KlogDump(4, "matches for matchAll "+s.Name, "  ", m)
-				if err := s.expandName(m, ret); err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
-
-	// We have a match
-	return ret, nil
-}
-
-func (s *FeatureSpec) expandName(in matchedFeatures, out map[string]string) error {
-	expandedName := s.Name
-	if s.nameTemplate != nil {
-		// Execute template to produce an array of labels
-		var tmp bytes.Buffer
-		if err := s.nameTemplate.Execute(&tmp, in); err != nil {
-			return err
-		}
-		expandedName = tmp.String()
-	}
-
-	// Split out individual labels
-	for _, item := range strings.Split(expandedName, "\n") {
-		// Remove leading/trailing whitespace and skip empty lines
-		if trimmed := strings.TrimSpace(item); trimmed != "" {
-			n, v := s.getNameValue(trimmed)
-			out[n] = v
-		}
-	}
-	return nil
-}
-
-func (s *FeatureSpec) getNameValue(name string) (string, string) {
-	// Value can be overridden in Name with "key=value". This is useful for
-	// templates.
-	if strings.ContainsRune(name, '=') {
-		split := strings.SplitN(name, "=", 2)
-		return split[0], split[1]
-	}
-
-	if s.Value != nil {
-		return name, *s.Value
-	}
-
-	return name, "true"
-}
-
-type matchedFeatures map[string]domainMatchedFeatures
-
-type domainMatchedFeatures map[string]interface{}
-
-func (r *MatchRule) match(features map[string]*feature.DomainFeatures) (matchedFeatures, error) {
-	ret := make(matchedFeatures, len(*r))
-
-	for key, rules := range *r {
-		split := strings.SplitN(key, ".", 2)
-		if len(split) != 2 {
-			return nil, fmt.Errorf("invalid rule %q: must be <domain>.<feature>", key)
-		}
-		domain := split[0]
-		// Ignore case
-		featureName := strings.ToLower(split[1])
-
-		domainFeatures, ok := features[domain]
-		if !ok {
-			return nil, fmt.Errorf("unknown feature source/domain %q", domain)
-		}
-
-		if _, ok := ret[domain]; !ok {
-			ret[domain] = make(domainMatchedFeatures)
-		}
-
-		var m bool
-		var e error
-		if f, ok := domainFeatures.Keys[featureName]; ok {
-			v, err := rules.MatchGetKeys(f.Features)
-			m = len(v) > 0
-			e = err
-			ret[domain][featureName] = v
-		} else if f, ok := domainFeatures.Values[featureName]; ok {
-			v, err := rules.MatchGetValues(f.Features)
-			m = len(v) > 0
-			e = err
-			ret[domain][featureName] = v
-		} else if f, ok := domainFeatures.Instances[featureName]; ok {
-			v, err := rules.MatchGetInstances(f.Features)
-			m = len(v) > 0
-			e = err
-			ret[domain][featureName] = v
-		} else {
-			return nil, fmt.Errorf("%q feature of source/domain %q not available", featureName, domain)
-		}
-
-		if e != nil {
-			return nil, e
-		} else if !m {
 			return nil, nil
 		}
 	}
