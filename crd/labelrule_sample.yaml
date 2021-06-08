@@ -1,7 +1,12 @@
-iapiVersion: nfd.kubernetes.test/v1alpha1
+apiVersion: nfd.kubernetes.test/v1alpha1
 kind: LabelRule
 metadata:
   name: my-rule
 spec:
   rules:
-
+    - name: my-custom-crd-label
+      matchOn:
+        - cpu:
+            cpuid:
+              AVX:
+                op: Exists
