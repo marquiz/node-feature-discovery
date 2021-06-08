@@ -90,6 +90,8 @@ type NfdMaster interface {
 }
 
 type nfdMaster struct {
+	*nfdController
+
 	args         Args
 	nodeName     string
 	annotationNs string
@@ -156,6 +158,12 @@ func (m *nfdMaster) Run() error {
 	if m.args.Prune {
 		return m.prune()
 	}
+
+	kubeconfig, err := m.getKubeconfig()
+	if err != nil {
+		return err
+	}
+	m.nfdController = newNfdController(kubeconfig)
 
 	if !m.args.NoPublish {
 		err := m.updateMasterNode()
@@ -224,6 +232,10 @@ func (m *nfdMaster) Run() error {
 // Stop NfdMaster
 func (m *nfdMaster) Stop() {
 	m.server.Stop()
+
+	if m.nfdController != nil {
+		m.nfdController.stop()
+	}
 
 	select {
 	case m.stop <- struct{}{}:
