@@ -33,6 +33,7 @@ type LabelRuleList struct {
 // LabelRule resource specifies a configuration for custom node labeling.
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient
 type LabelRule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
