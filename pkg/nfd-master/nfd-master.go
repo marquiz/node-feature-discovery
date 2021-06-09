@@ -76,6 +76,7 @@ type Args struct {
 	KeyFile        string
 	Kubeconfig     string
 	LabelWhiteList utils.RegexpVal
+	NoController   bool
 	NoPublish      bool
 	Port           int
 	Prune          bool
@@ -159,11 +160,13 @@ func (m *nfdMaster) Run() error {
 		return m.prune()
 	}
 
-	kubeconfig, err := m.getKubeconfig()
-	if err != nil {
-		return err
+	if !m.args.NoController {
+		kubeconfig, err := m.getKubeconfig()
+		if err != nil {
+			return err
+		}
+		m.nfdController = newNfdController(kubeconfig)
 	}
-	m.nfdController = newNfdController(kubeconfig)
 
 	if !m.args.NoPublish {
 		err := m.updateMasterNode()
