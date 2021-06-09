@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
@@ -92,7 +93,7 @@ type keyFilter struct {
 type cpuSource struct {
 	config      *Config
 	cpuidFilter *keyFilter
-	features    *source.Features
+	features    *feature.DomainFeatures
 }
 
 // Singleton source instance
@@ -130,34 +131,34 @@ func (s *cpuSource) GetLabels() (source.FeatureLabels, error) {
 	labels := source.FeatureLabels{}
 
 	// CPUID
-	for f := range s.features.Keys[CpuidFeature] {
+	for f := range s.features.Keys[CpuidFeature].Features {
 		if s.cpuidFilter.unmask(f) {
 			labels["cpuid."+f] = true
 		}
 	}
 
 	// Cstate
-	for k, v := range s.features.Values[CstateFeature] {
+	for k, v := range s.features.Values[CstateFeature].Features {
 		labels["cstate."+k] = v
 	}
 
 	// Pstate
-	for k, v := range s.features.Values[PstateFeature] {
+	for k, v := range s.features.Values[PstateFeature].Features {
 		labels["pstate."+k] = v
 	}
 
 	// RDT
-	for k := range s.features.Keys[RdtFeature] {
+	for k := range s.features.Keys[RdtFeature].Features {
 		labels["rdt."+k] = true
 	}
 
 	// SST
-	for k, v := range s.features.Values[SstFeature] {
+	for k, v := range s.features.Values[SstFeature].Features {
 		labels["power.sst_"+k] = v
 	}
 
 	// Hyperthreading
-	if v, ok := s.features.Values[TopologyFeature]["hardware_multithreading"]; ok {
+	if v, ok := s.features.Values[TopologyFeature].Features["hardware_multithreading"]; ok {
 		labels["hardware_multithreading"] = v
 	}
 
@@ -166,12 +167,12 @@ func (s *cpuSource) GetLabels() (source.FeatureLabels, error) {
 
 // Discover method of the FeatureSource Interface
 func (s *cpuSource) Discover() error {
-	s.features = source.NewFeatures()
+	s.features = feature.NewDomainFeatures()
 
 	// Detect CPUID
-	s.features.Keys[CpuidFeature] = make(map[string]struct{})
+	s.features.Keys[CpuidFeature] = *feature.NewKeyFeatures()
 	for _, f := range getCpuidFlags() {
-		s.features.Keys[CpuidFeature][f] = struct{}{}
+		s.features.Keys[CpuidFeature].Features[f] = feature.Nil{}
 	}
 
 	// Detect cstate configuration
@@ -179,7 +180,7 @@ func (s *cpuSource) Discover() error {
 	if err != nil {
 		klog.Errorf("failed to detect cstate: %v", err)
 	} else {
-		s.features.Values[CstateFeature] = cstate
+		s.features.Values[CstateFeature] = feature.ValueFeatures{Features: cstate}
 	}
 
 	// Detect pstate features
@@ -187,19 +188,19 @@ func (s *cpuSource) Discover() error {
 	if err != nil {
 		klog.Error(err)
 	}
-	s.features.Values[PstateFeature] = pstate
+	s.features.Values[PstateFeature] = feature.ValueFeatures{Features: pstate}
 
 	// Detect RDT features
-	s.features.Keys[RdtFeature] = make(map[string]struct{})
+	s.features.Keys[RdtFeature] = *feature.NewKeyFeatures()
 	for _, f := range discoverRDT() {
-		s.features.Keys[RdtFeature][f] = struct{}{}
+		s.features.Keys[RdtFeature].Features[f] = feature.Nil{}
 	}
 
 	// Detect SST features
-	s.features.Values[SstFeature] = discoverSST()
+	s.features.Values[SstFeature] = feature.ValueFeatures{Features: discoverSST()}
 
 	// Detect hyper-threading
-	s.features.Values[TopologyFeature] = discoverTopology()
+	s.features.Values[TopologyFeature] = feature.ValueFeatures{Features: discoverTopology()}
 
 	if klog.V(3).Enabled() {
 		klog.Info("discovered cpu features:\n", utils.Dump(s.features))
@@ -208,8 +209,8 @@ func (s *cpuSource) Discover() error {
 }
 
 // GetFeatures method of the FeatureSource Interface
-func (s *cpuSource) GetFeatures() source.Features {
-	return *s.features
+func (s *cpuSource) GetFeatures() *feature.DomainFeatures {
+	return s.features
 }
 
 func discoverTopology() map[string]string {

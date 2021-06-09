@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
 
@@ -49,20 +50,20 @@ func readSinglePciAttribute(devPath string, attrName string) (string, error) {
 }
 
 // Read information of one PCI device
-func readPciDevInfo(devPath string) (source.Instance, error) {
-	info := source.Instance{}
+func readPciDevInfo(devPath string) (feature.InstanceFeature, error) {
+	info := *feature.NewInstanceFeature()
 
 	for _, attr := range mandatoryDevAttrs {
 		attrVal, err := readSinglePciAttribute(devPath, attr)
 		if err != nil {
 			return info, fmt.Errorf("failed to read device %s: %s", attr, err)
 		}
-		info[attr] = attrVal
+		info.Attributes[attr] = attrVal
 	}
 	for _, attr := range optionalDevAttrs {
 		attrVal, err := readSinglePciAttribute(devPath, attr)
 		if err == nil {
-			info[attr] = attrVal
+			info.Attributes[attr] = attrVal
 		}
 	}
 	return info, nil
@@ -70,7 +71,7 @@ func readPciDevInfo(devPath string) (source.Instance, error) {
 
 // detectPci detects available PCI devices and retrieves their device attributes.
 // An error is returned if reading any of the mandatory attributes fails.
-func detectPci() (source.InstanceAttributes, error) {
+func detectPci() ([]feature.InstanceFeature, error) {
 	sysfsBasePath := source.SysfsDir.Path("bus/pci/devices")
 
 	devices, err := ioutil.ReadDir(sysfsBasePath)
@@ -79,7 +80,7 @@ func detectPci() (source.InstanceAttributes, error) {
 	}
 
 	// Iterate over devices
-	devInfo := make(source.InstanceAttributes, 0, len(devices))
+	devInfo := make([]feature.InstanceFeature, 0, len(devices))
 	for _, device := range devices {
 		info, err := readPciDevInfo(filepath.Join(sysfsBasePath, device.Name()))
 		if err != nil {

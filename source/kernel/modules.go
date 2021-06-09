@@ -20,24 +20,26 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 )
 
 const kmodProcfsPath = "/proc/modules"
 
-func getLoadedModules() (map[string]struct{}, error) {
+func getLoadedModules() (map[string]feature.Nil, error) {
 	out, err := ioutil.ReadFile(kmodProcfsPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %s", kmodProcfsPath, err.Error())
 	}
 
-	loadedMods := make(map[string]struct{})
+	loadedMods := make(map[string]feature.Nil)
 	for _, line := range strings.Split(string(out), "\n") {
 		// skip empty lines
 		if len(line) == 0 {
 			continue
 		}
 		// append loaded module
-		loadedMods[strings.Fields(line)[0]] = struct{}{}
+		loadedMods[strings.Fields(line)[0]] = feature.Nil{}
 	}
 	return loadedMods, nil
 }

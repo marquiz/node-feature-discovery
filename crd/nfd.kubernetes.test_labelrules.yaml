@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.5.0
+    controller-gen.kubebuilder.io/version: v0.6.0
   creationTimestamp: null
   name: labelrules.nfd.kubernetes.test
 spec:
@@ -19,13 +19,18 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: LabelRule resource specifies a configuration for custom node labeling.
+        description: LabelRule resource specifies a configuration for custom node
+          labeling.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -37,12 +42,14 @@ spec:
                   description: Rule defines a rule for creating on feature label.
                   properties:
                     matchOn:
-                      description: MatchOn specifies a list of alternative expression sets
+                      description: MatchOn specifies a list of alternative expression
+                        sets
                       items:
                         additionalProperties:
                           additionalProperties:
                             additionalProperties:
-                              description: MatchExpression defines the expression to use for matching.
+                              description: MatchExpression defines the expression
+                                to use for matching.
                               properties:
                                 op:
                                   description: Op is the operand to be applied.
@@ -58,18 +65,22 @@ spec:
                                   - IsFalse
                                   type: string
                                 value:
-                                  description: Value is the list of values that the operand is applied on.
+                                  description: Value is the list of values that the
+                                    operand is applied on.
                                   items:
                                     type: string
                                   type: array
                               required:
                               - op
                               type: object
-                            description: FeatureRule defines rules for one feature, matching against its attributes.
+                            description: FeatureRule defines rules for one feature,
+                              matching against its attributes.
                             type: object
-                          description: DomainRule defines per-feature rules for one domain.
+                          description: DomainRule defines per-feature rules for one
+                            domain.
                           type: object
-                        description: MatchRule defines one complete set of rules to satisfy a successful match.
+                        description: MatchRule defines one complete set of rules to
+                          satisfy a successful match.
                         type: object
                       type: array
                     name:

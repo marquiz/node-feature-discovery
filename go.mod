@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/fsnotify/fsnotify v1.4.9
+	github.com/gogo/protobuf v1.3.2
 	github.com/klauspost/cpuid/v2 v2.0.6
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
@@ -26,7 +27,6 @@ require (
 // The k8s "sub-"packages do not have 'semver' compatible versions. Thus, we
 // need to override with commits (corresponding their kubernetes-* tags)
 replace (
-	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	golang.org/x/text => golang.org/x/text v0.3.5
 	k8s.io/api => k8s.io/api v0.20.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.5

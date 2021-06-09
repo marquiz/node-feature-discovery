@@ -27,6 +27,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
@@ -43,7 +44,7 @@ const LabelFeature = "label"
 
 // localSource implements the FeatureSource and LabelSource interfaces.
 type localSource struct {
-	features *source.Features
+	features *feature.DomainFeatures
 }
 
 // Singleton source instance
@@ -62,7 +63,7 @@ func (s *localSource) Priority() int { return 20 }
 // GetLabels method of the LabelSource interface
 func (s *localSource) GetLabels() (source.FeatureLabels, error) {
 	labels := make(source.FeatureLabels)
-	for k, v := range s.features.Values[LabelFeature] {
+	for k, v := range s.features.Values[LabelFeature].Features {
 		labels[k] = v
 	}
 	return labels, nil
@@ -70,7 +71,7 @@ func (s *localSource) GetLabels() (source.FeatureLabels, error) {
 
 // Discover method of the FeatureSource interface
 func (s *localSource) Discover() error {
-	s.features = source.NewFeatures()
+	s.features = feature.NewDomainFeatures()
 
 	featuresFromHooks, err := getFeaturesFromHooks()
 	if err != nil {
@@ -90,7 +91,7 @@ func (s *localSource) Discover() error {
 		}
 		featuresFromFiles[k] = v
 	}
-	s.features.Values[LabelFeature] = featuresFromFiles
+	s.features.Values[LabelFeature] = feature.ValueFeatures{Features: featuresFromFiles}
 
 	if klog.V(3).Enabled() {
 		klog.Info("discovered local features:\n", utils.Dump(s.features))
@@ -99,8 +100,8 @@ func (s *localSource) Discover() error {
 }
 
 // GetFeatures method of the FeatureSource Interface
-func (s *localSource) GetFeatures() source.Features {
-	return *s.features
+func (s *localSource) GetFeatures() *feature.DomainFeatures {
+	return s.features
 }
 
 func parseFeatures(lines [][]byte, prefix string) map[string]string {

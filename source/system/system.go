@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
@@ -49,7 +50,7 @@ type features struct {
 
 // systemSource implements the FeatureSource and LabelSource interfaces.
 type systemSource struct {
-	features *source.Features
+	features *feature.DomainFeatures
 }
 
 // Singleton source instance
@@ -69,7 +70,7 @@ func (s *systemSource) GetLabels() (source.FeatureLabels, error) {
 	labels := source.FeatureLabels{}
 
 	for _, key := range osReleaseFields {
-		if value, exists := s.features.Values[OsReleaseFeature][key]; exists {
+		if value, exists := s.features.Values[OsReleaseFeature].Features[key]; exists {
 			feature := "os_release." + key
 			labels[feature] = value
 		}
@@ -79,23 +80,24 @@ func (s *systemSource) GetLabels() (source.FeatureLabels, error) {
 
 // Discover method of the FeatureSource interface
 func (s *systemSource) Discover() error {
-	s.features = source.NewFeatures()
+	s.features = feature.NewDomainFeatures()
 
 	// Get node name
-	s.features.Values[NameFeature] = map[string]string{"nodename": os.Getenv("NODE_NAME")}
+	s.features.Values[NameFeature] = *feature.NewValueFeatures()
+	s.features.Values[NameFeature].Features["nodename"] = os.Getenv("NODE_NAME")
 
 	// Get os-release information
 	release, err := parseOSRelease()
 	if err != nil {
 		klog.Errorf("failed to get os-release: %s", err)
 	} else {
-		s.features.Values[OsReleaseFeature] = release
+		s.features.Values[OsReleaseFeature] = feature.ValueFeatures{Features: release}
 
 		if v, ok := release["VERSION_ID"]; ok {
 			versionComponents := splitVersion(v)
 			for subKey, subValue := range versionComponents {
 				if subValue != "" {
-					s.features.Values[OsReleaseFeature]["VERSION_ID."+subKey] = subValue
+					s.features.Values[OsReleaseFeature].Features["VERSION_ID."+subKey] = subValue
 				}
 			}
 		}
@@ -107,8 +109,8 @@ func (s *systemSource) Discover() error {
 }
 
 // GetFeatures method of the FeatureSource Interface
-func (s *systemSource) GetFeatures() source.Features {
-	return *s.features
+func (s *systemSource) GetFeatures() *feature.DomainFeatures {
+	return s.features
 }
 
 // Read and parse os-release file

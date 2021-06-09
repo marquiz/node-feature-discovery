@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
@@ -46,7 +47,7 @@ const DeviceFeature = "device"
 // pciSource implements the FeatureSource, LabelSource and ConfigurableSource interfaces.
 type pciSource struct {
 	config   *Config
-	features *source.Features
+	features *feature.DomainFeatures
 }
 
 // Singleton source instance
@@ -109,20 +110,21 @@ func (s *pciSource) GetLabels() (source.FeatureLabels, error) {
 	}
 
 	// Iterate over all device classes
-	for _, dev := range s.features.Instances[DeviceFeature] {
-		class := dev["class"]
+	for _, dev := range s.features.Instances[DeviceFeature].Features {
+		attrs := dev.Attributes
+		class := attrs["class"]
 		for _, white := range s.config.DeviceClassWhitelist {
 			if strings.HasPrefix(string(class), strings.ToLower(white)) {
 				devLabel := ""
 				for i, attr := range deviceLabelFields {
-					devLabel += dev[attr]
+					devLabel += attrs[attr]
 					if i < len(deviceLabelFields)-1 {
 						devLabel += "_"
 					}
 				}
 				labels[devLabel+".present"] = true
 
-				if _, ok := dev["sriov_totalvfs"]; ok {
+				if _, ok := attrs["sriov_totalvfs"]; ok {
 					labels[devLabel+".sriov.capable"] = true
 				}
 				break
@@ -134,13 +136,13 @@ func (s *pciSource) GetLabels() (source.FeatureLabels, error) {
 
 // Discover method of the FeatureSource interface
 func (s *pciSource) Discover() error {
-	s.features = source.NewFeatures()
+	s.features = feature.NewDomainFeatures()
 
 	devs, err := detectPci()
 	if err != nil {
 		return fmt.Errorf("failed to detect PCI devices: %s", err.Error())
 	}
-	s.features.Instances[DeviceFeature] = devs
+	s.features.Instances[DeviceFeature] = feature.InstanceFeatures{Features: devs}
 
 	if klog.V(3).Enabled() {
 		klog.Info("discovered pci features:\n", utils.Dump(s.features))
@@ -149,8 +151,8 @@ func (s *pciSource) Discover() error {
 }
 
 // GetFeatures method of the FeatureSource Interface
-func (s *pciSource) GetFeatures() source.Features {
-	return *s.features
+func (s *pciSource) GetFeatures() *feature.DomainFeatures {
+	return s.features
 }
 
 func init() {

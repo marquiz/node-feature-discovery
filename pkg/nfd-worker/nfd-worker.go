@@ -36,6 +36,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	pb "sigs.k8s.io/node-feature-discovery/pkg/labeler"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/pkg/version"
@@ -541,39 +542,11 @@ func getFeatureLabels(source source.LabelSource, labelWhiteList regexp.Regexp) (
 }
 
 // getFeatures returns raw features from all feature sources
-func getFeatures() map[string]*pb.DomainFeatures {
-	features := make(map[string]*pb.DomainFeatures)
+func getFeatures() map[string]*feature.DomainFeatures {
+	features := make(map[string]*feature.DomainFeatures)
 
 	for name, src := range source.GetAllFeatureSources() {
-		dfs := &pb.DomainFeatures{
-			Keys:      make(map[string]*pb.KeyAttributes),
-			Values:    make(map[string]*pb.ValueAttributes),
-			Instances: make(map[string]*pb.InstanceAttributes)}
-
-		rfs := src.GetFeatures()
-
-		for f, a := range rfs.Keys {
-			dfa := make(map[string]bool, len(a))
-			for k := range a {
-				dfa[k] = true
-			}
-			dfs.Keys[f] = &pb.KeyAttributes{Attributes: dfa}
-		}
-
-		for f, a := range rfs.Values {
-			dfs.Values[f] = &pb.ValueAttributes{Attributes: a}
-		}
-
-		for f, a := range rfs.Instances {
-			attributes := &pb.InstanceAttributes{Attributes: make([]*pb.InstanceAttribute, len(a))}
-
-			for i, ai := range a {
-				attributes.Attributes[i] = &pb.InstanceAttribute{Info: ai}
-			}
-			dfs.Instances[f] = attributes
-		}
-
-		features[name] = dfs
+		features[name] = src.GetFeatures()
 	}
 
 	return features

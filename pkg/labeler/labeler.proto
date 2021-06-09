@@ -18,6 +18,8 @@ syntax = "proto3";
 
 option go_package = "sigs.k8s.io/node-feature-discovery/pkg/labeler";
 
+import "pkg/api/feature/generated.proto";
+
 package labeler;
 
 service Labeler{
@@ -28,31 +30,8 @@ message SetLabelsRequest {
     string nfd_version = 1;
     string node_name = 2;
     map<string, string> labels = 3;
-    map<string, DomainFeatures> features = 4;
+    map<string, feature.DomainFeatures> features = 4;
 }
 
 message SetLabelsReply {
-}
-
-message DomainFeatures {
-    map<string, KeyAttributes> keys = 1;
-    map<string, ValueAttributes> values = 2;
-    map<string, InstanceAttributes> instances = 3;
-}
-
-message KeyAttributes {
-    // The bool value is reserved and should be set to true
-    map<string, bool> attributes = 1;
-}
-
-message ValueAttributes {
-    map<string, string> attributes = 1;
-}
-
-message InstanceAttributes {
-    repeated InstanceAttribute attributes = 1;
-}
-
-message InstanceAttribute {
-    map<string, string> info = 1;
 }

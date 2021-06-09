@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
-	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/v1alpha1"
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 )
 
 // Source is the base interface for all other source interfaces
@@ -35,7 +35,7 @@ type FeatureSource interface {
 	Discover() error
 
 	// GetFeatures returns discovered features in raw form
-	GetFeatures() Features
+	GetFeatures() *feature.DomainFeatures
 }
 
 // LabelSource represents a source of node feature labels
@@ -71,25 +71,6 @@ type TestSource interface {
 	IsTestSource() bool
 }
 
-// Features is the collection of all discovered features of one source
-type Features struct {
-	Keys      map[string]KeyAttributes
-	Values    map[string]ValueAttributes
-	Instances map[string]InstanceAttributes
-}
-
-// KeyAttributes contains feature attributes of one simple feature only containing names without values
-type KeyAttributes map[string]struct{}
-
-// ValueAttributes contains feature attributes of one feature containing key value pairs
-type ValueAttributes map[string]string
-
-// InstanceAttributes contains feature attributes of one complex feature
-// containing instances each of which have multiple values (sub-attributes)
-type InstanceAttributes []nfdv1alpha1.Instance
-
-type Instance = nfdv1alpha1.Instance
-
 // FeatureLabelValue represents the value of one feature label
 type FeatureLabelValue interface{}
 
@@ -98,16 +79,6 @@ type FeatureLabels map[string]FeatureLabelValue
 
 // Config is the generic interface for source configuration data
 type Config interface {
-}
-
-// NewFeatures creates a new instance of Features, initializing specified
-// features to empty values
-func NewFeatures() *Features {
-	f := Features{
-		Keys:      make(map[string]KeyAttributes),
-		Values:    make(map[string]ValueAttributes),
-		Instances: make(map[string]InstanceAttributes)}
-	return &f
 }
 
 // sources contain all registered sources

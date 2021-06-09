@@ -21,6 +21,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
 )
@@ -56,7 +57,7 @@ const (
 // kernelSource implements the FeatureSource, LabelSource and ConfigurableSource interfaces.
 type kernelSource struct {
 	config   *Config
-	features source.Features
+	features *feature.DomainFeatures
 }
 
 // Singleton source instance
@@ -92,18 +93,18 @@ func (s *kernelSource) Priority() int { return 0 }
 func (s *kernelSource) GetLabels() (source.FeatureLabels, error) {
 	labels := source.FeatureLabels{}
 
-	for k, v := range s.features.Values[VersionFeature] {
+	for k, v := range s.features.Values[VersionFeature].Features {
 		labels[VersionFeature+"."+k] = v
 	}
 
 	// Check flags
 	for _, opt := range s.config.ConfigOpts {
-		if val, ok := s.features.Values[ConfigFeature][opt]; ok {
+		if val, ok := s.features.Values[ConfigFeature].Features[opt]; ok {
 			labels[ConfigFeature+"."+opt] = val
 		}
 	}
 
-	for k, v := range s.features.Values[SelinuxFeature] {
+	for k, v := range s.features.Values[SelinuxFeature].Features {
 		labels[SelinuxFeature+"."+k] = v
 	}
 
@@ -113,32 +114,33 @@ func (s *kernelSource) GetLabels() (source.FeatureLabels, error) {
 // Discover method of the FeatureSource interface
 func (s *kernelSource) Discover() error {
 	//s.features = *NewFeatures([]string{}, []string{ConfigFeature, SelinuxFeature, VersionFeature}, []string{})
-	s.features = *source.NewFeatures()
+	s.features = feature.NewDomainFeatures()
 
 	// Read kernel version
 	if version, err := parseVersion(); err != nil {
 		klog.Errorf("failed to get kernel version: %s", err)
 	} else {
-		s.features.Values[VersionFeature] = version
+		s.features.Values[VersionFeature] = feature.ValueFeatures{Features: version}
 	}
 
 	// Read kconfig
 	if kconfig, err := parseKconfig(s.config.KconfigFile); err != nil {
 		klog.Errorf("failed to read kconfig: %s", err)
 	} else {
-		s.features.Values[ConfigFeature] = kconfig
+		s.features.Values[ConfigFeature] = feature.ValueFeatures{Features: kconfig}
 	}
 
 	if kmods, err := getLoadedModules(); err != nil {
 		klog.Errorf("failed to get loaded kernel modules: %v", err)
 	} else {
-		s.features.Keys[LoadedModuleFeature] = kmods
+		s.features.Keys[LoadedModuleFeature] = feature.KeyFeatures{Features: kmods}
 	}
 
 	if selinux, err := SelinuxEnabled(); err != nil {
 		klog.Warning(err)
 	} else {
-		s.features.Values[SelinuxFeature]["enabled"] = strconv.FormatBool(selinux)
+		s.features.Values[SelinuxFeature] = *feature.NewValueFeatures()
+		s.features.Values[SelinuxFeature].Features["enabled"] = strconv.FormatBool(selinux)
 	}
 
 	if klog.V(3).Enabled() {
@@ -147,7 +149,7 @@ func (s *kernelSource) Discover() error {
 	return nil
 }
 
-func (s *kernelSource) GetFeatures() source.Features {
+func (s *kernelSource) GetFeatures() *feature.DomainFeatures {
 	return s.features
 }
 

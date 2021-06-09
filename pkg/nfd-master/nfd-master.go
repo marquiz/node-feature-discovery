@@ -43,7 +43,6 @@ import (
 	pb "sigs.k8s.io/node-feature-discovery/pkg/labeler"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/pkg/version"
-	"sigs.k8s.io/node-feature-discovery/source"
 	"sigs.k8s.io/node-feature-discovery/source/custom"
 )
 
@@ -458,17 +457,11 @@ func (m *nfdMaster) crLabels(r *pb.SetLabelsRequest) map[string]string {
 		return nil
 	}
 
-	// Convert features from request to correct data type
-	features := make(map[string]source.Features, len(r.Features))
-	for k, v := range r.Features {
-		features[k] = *v.ToFeatures()
-	}
-
 	// Process all rule CRs
 	for _, spec := range ruleSpecs {
 		klog.V(1).Infof("executing custom LabelRule \"%s/%s\"", spec.ObjectMeta.Namespace, spec.ObjectMeta.Name)
 		for _, rule := range spec.Spec.Rules {
-			ruleLabels, err := custom.MatchRule(&rule, features)
+			ruleLabels, err := custom.MatchRule(&rule, r.Features)
 			if err != nil {
 				klog.Errorf("failed to process custom rule %q: %w", rule.Name, err)
 				continue

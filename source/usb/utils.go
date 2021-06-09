@@ -25,7 +25,7 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"sigs.k8s.io/node-feature-discovery/source"
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 )
 
 var devAttrs = []string{"class", "vendor", "device", "serial"}
@@ -57,20 +57,20 @@ func readSingleUsbAttribute(devPath string, attrName string) (string, error) {
 }
 
 // Read information of one USB device
-func readUsbDevInfo(devPath string) (source.InstanceAttributes, error) {
-	instances := source.InstanceAttributes{}
-	info := source.Instance{}
+func readUsbDevInfo(devPath string) ([]feature.InstanceFeature, error) {
+	instances := make([]feature.InstanceFeature, 0)
+	info := *feature.NewInstanceFeature()
 
 	for _, attr := range devAttrs {
 		attrVal, _ := readSingleUsbAttribute(devPath, attr)
 		if len(attrVal) > 0 {
-			info[attr] = attrVal
+			info.Attributes[attr] = attrVal
 		}
 	}
 
 	// USB devices encode their class information either at the device or the interface level. If the device class
 	// is set, return as-is.
-	if info["class"] != "00" {
+	if info.Attributes["class"] != "00" {
 		instances = append(instances, info)
 	} else {
 		// Otherwise, if a 00 is presented at the device level, descend to the interface level.
@@ -88,13 +88,13 @@ func readUsbDevInfo(devPath string) (source.InstanceAttributes, error) {
 				return nil, err
 			}
 
-			attr := source.Instance{}
-			for k, v := range info {
-				attr[k] = v
+			dev := *feature.NewInstanceFeature()
+			for k, v := range info.Attributes {
+				dev.Attributes[k] = v
 			}
-			attr["class"] = attrVal
+			dev.Attributes["class"] = attrVal
 
-			instances = append(instances, attr)
+			instances = append(instances, dev)
 		}
 	}
 
@@ -102,7 +102,7 @@ func readUsbDevInfo(devPath string) (source.InstanceAttributes, error) {
 }
 
 // detectUsb detects available USB devices and retrieves their device attributes.
-func detectUsb() (source.InstanceAttributes, error) {
+func detectUsb() ([]feature.InstanceFeature, error) {
 	// Unlike PCI, the USB sysfs interface includes entries not just for
 	// devices. We work around this by globbing anything that includes a
 	// valid product ID.
@@ -113,7 +113,7 @@ func detectUsb() (source.InstanceAttributes, error) {
 	}
 
 	// Iterate over devices
-	devInfo := source.InstanceAttributes{}
+	devInfo := make([]feature.InstanceFeature, 0)
 	for _, devPath := range devPaths {
 		devs, err := readUsbDevInfo(filepath.Dir(devPath))
 		if err != nil {

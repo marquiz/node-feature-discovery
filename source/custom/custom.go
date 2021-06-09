@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/source"
@@ -81,7 +82,7 @@ func (s *customSource) Priority() int { return 10 }
 // GetLabels method of the LabelSource interface
 func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 	// Get raw features from all sources
-	domainFeatures := make(map[string]source.Features)
+	domainFeatures := make(map[string]*feature.DomainFeatures)
 	for n, s := range source.GetAllFeatureSources() {
 		domainFeatures[n] = s.GetFeatures()
 	}
@@ -105,7 +106,7 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 }
 
 // MatchRule processes a single feature rule.
-func MatchRule(rule *nfdv1alpha1.Rule, features map[string]source.Features) (map[string]string, error) {
+func MatchRule(rule *nfdv1alpha1.Rule, features map[string]*feature.DomainFeatures) (map[string]string, error) {
 	ret := make(map[string]string)
 
 	for _, matchRules := range rule.MatchOn {
@@ -163,7 +164,7 @@ func getNameValue(rule *nfdv1alpha1.Rule, name string) (string, string) {
 
 type domainMatchedFeatures map[string]interface{}
 
-func matchDomains(domains map[string]nfdv1alpha1.DomainRule, features map[string]source.Features) (map[string]domainMatchedFeatures, error) {
+func matchDomains(domains map[string]nfdv1alpha1.DomainRule, features map[string]*feature.DomainFeatures) (map[string]domainMatchedFeatures, error) {
 	ret := make(map[string]domainMatchedFeatures, len(domains))
 
 	for domain, rules := range domains {
@@ -182,17 +183,17 @@ func matchDomains(domains map[string]nfdv1alpha1.DomainRule, features map[string
 			matched := make(map[string]interface{})
 
 			if f, ok := domainFeatures.Keys[featureName]; ok {
-				v, err := featureRules.MatchGetKeys(f)
+				v, err := featureRules.MatchGetKeys(f.Features)
 				m = len(v) > 0
 				e = err
 				matched[featureName] = v
 			} else if f, ok := domainFeatures.Values[featureName]; ok {
-				v, err := featureRules.MatchGetValues(f)
+				v, err := featureRules.MatchGetValues(f.Features)
 				m = len(v) > 0
 				e = err
 				matched[featureName] = v
 			} else if f, ok := domainFeatures.Instances[featureName]; ok {
-				v, err := featureRules.MatchGetInstances(f)
+				v, err := featureRules.MatchGetInstances(f.Features)
 				m = len(v) > 0
 				e = err
 				matched[featureName] = v
@@ -211,11 +212,11 @@ func matchDomains(domains map[string]nfdv1alpha1.DomainRule, features map[string
 	return ret, nil
 }
 
-func matchLegacy(rules nfdv1alpha1.Legacy, features map[string]source.Features) (bool, error) {
+func matchLegacy(rules nfdv1alpha1.Legacy, features map[string]*feature.DomainFeatures) (bool, error) {
 	if rules.CpuID != nil {
 		if f, ok := features[cpu.Name].Keys[cpu.CpuidFeature]; !ok {
 			return false, fmt.Errorf("cpuid information not available")
-		} else if match, err := rules.CpuID.MatchKeys(f); !match || err != nil {
+		} else if match, err := rules.CpuID.MatchKeys(f.Features); !match || err != nil {
 			return match, err
 		}
 	}
@@ -223,7 +224,7 @@ func matchLegacy(rules nfdv1alpha1.Legacy, features map[string]source.Features) 
 	if rules.LoadedKMod != nil {
 		if f, ok := features[kernel.Name].Keys[kernel.LoadedModuleFeature]; !ok {
 			return false, fmt.Errorf("information about loaded modules not available")
-		} else if match, err := rules.LoadedKMod.MatchKeys(f); !match || err != nil {
+		} else if match, err := rules.LoadedKMod.MatchKeys(f.Features); !match || err != nil {
 			return match, err
 		}
 	}
@@ -231,7 +232,7 @@ func matchLegacy(rules nfdv1alpha1.Legacy, features map[string]source.Features) 
 	if rules.Kconfig != nil {
 		if f, ok := features[kernel.Name].Values[kernel.ConfigFeature]; !ok {
 			return false, fmt.Errorf("kernel config options not available")
-		} else if match, err := rules.Kconfig.MatchValues(f); !match || err != nil {
+		} else if match, err := rules.Kconfig.MatchValues(f.Features); !match || err != nil {
 			return match, err
 		}
 	}
@@ -239,7 +240,7 @@ func matchLegacy(rules nfdv1alpha1.Legacy, features map[string]source.Features) 
 	if rules.PciID != nil {
 		if f, ok := features[pci.Name].Instances[pci.DeviceFeature]; !ok {
 			return false, fmt.Errorf("pci device information not available")
-		} else if match, err := rules.PciID.MatchInstances(f); !match || err != nil {
+		} else if match, err := rules.PciID.MatchInstances(f.Features); !match || err != nil {
 			return match, err
 		}
 	}
@@ -247,7 +248,7 @@ func matchLegacy(rules nfdv1alpha1.Legacy, features map[string]source.Features) 
 	if rules.UsbID != nil {
 		if f, ok := features[usb.Name].Instances[usb.DeviceFeature]; !ok {
 			return false, fmt.Errorf("usb device information not available")
-		} else if match, err := rules.UsbID.MatchInstances(f); !match || err != nil {
+		} else if match, err := rules.UsbID.MatchInstances(f.Features); !match || err != nil {
 			return match, err
 		}
 	}
@@ -256,7 +257,7 @@ func matchLegacy(rules nfdv1alpha1.Legacy, features map[string]source.Features) 
 		if f, ok := features[system.Name].Values[system.NameFeature]; !ok {
 			return false, fmt.Errorf("system name information not available")
 		} else {
-			n, ok := f["nodename"]
+			n, ok := f.Features["nodename"]
 			if match, err := rules.Nodename.MatchExpression.Match(ok, n); !match || err != nil {
 				return match, err
 			}

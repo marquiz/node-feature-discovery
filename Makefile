@@ -13,7 +13,7 @@ BASE_IMAGE_MINIMAL ?= gcr.io/distroless/base
 
 MDL ?= mdl
 
-GENERATE_GROUPS_SH ?= ../code-generator/generate-groups.sh
+K8S_CODE_GENERATOR ?= ../code-generator
 
 # Docker base command for working with html documentation.
 # Use host networking because 'jekyll serve' is stupid enough to use the
@@ -125,10 +125,19 @@ mock:
 	mockery --name=LabelerClient --dir=pkg/labeler --inpkg --note="Re-generate by running 'make mock'"
 
 apigen:
+	$(K8S_CODE_GENERATOR)/go-to-protobuf \
+	  --output-base=. \
+	  --go-header-file hack/boilerplate.go.txt \
+	  --proto-import /home/marquiz/go/git/k8s/kubernetes/vendor \
+	  --packages ./pkg/api/feature=feature \
+	  --keep-gogoproto=false \
+	  --apimachinery-packages "-k8s.io/apimachinery/pkg/util/intstr"
+	sed s',go_package =.*,go_package = "sigs.k8s.io/node-feature-discovery/pkg/api/feature";,' \
+	  -i pkg/api/feature/generated.proto
 	protoc --go_opt=paths=source_relative --go_out=plugins=grpc:.  pkg/labeler/labeler.proto
 	controller-gen object crd output:crd:dir=crd paths=./pkg/apis/...
 	rm -rf sigs.k8s.io
-	$(GENERATE_GROUPS_SH) client,informer,lister \
+	$(K8S_CODE_GENERATOR)/generate-groups.sh client,informer,lister \
 	    sigs.k8s.io/node-feature-discovery/pkg/generated \
 	    sigs.k8s.io/node-feature-discovery/pkg/apis \
 	    "nfd:v1alpha1" --output-base=. \
@@ -136,6 +145,8 @@ apigen:
 	rm -rf pkg/generated
 	mv sigs.k8s.io/node-feature-discovery/pkg/generated pkg/
 	rm -rf sigs.k8s.io
+
+pkg/api:
 
 
 gofmt:

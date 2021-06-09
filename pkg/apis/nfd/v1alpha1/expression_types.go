@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 )
 
 // Expressions is a helper type to work around issues with k8s deepcopy-gen
@@ -163,7 +164,7 @@ func (m *MatchExpression) Match(valid bool, value interface{}) (bool, error) {
 	return false, nil
 }
 
-func (m *MatchExpression) MatchKeys(name string, keys map[string]struct{}) (bool, error) {
+func (m *MatchExpression) MatchKeys(name string, keys map[string]feature.Nil) (bool, error) {
 	matched := false
 
 	_, ok := keys[name]
@@ -266,7 +267,7 @@ func (m *MatchExpression) UnmarshalJSON(data []byte) error {
 	return m.Validate()
 }
 
-func (m *MatchExpressionSet) MatchKeys(keys map[string]struct{}) (bool, error) {
+func (m *MatchExpressionSet) MatchKeys(keys map[string]feature.Nil) (bool, error) {
 	v, err := m.MatchGetKeys(keys)
 	return len(v) > 0, err
 }
@@ -275,7 +276,7 @@ type MatchedKey struct {
 	Name string
 }
 
-func (m *MatchExpressionSet) MatchGetKeys(keys map[string]struct{}) ([]MatchedKey, error) {
+func (m *MatchExpressionSet) MatchGetKeys(keys map[string]feature.Nil) ([]MatchedKey, error) {
 	ret := make([]MatchedKey, 0, m.Len())
 
 	// An empty rule matches all keys
@@ -355,18 +356,16 @@ func (m *MatchExpressionSet) MatchGetValues(values map[string]string) ([]Matched
 	return ret, nil
 }
 
-type Instance map[string]string
-
-func (m *MatchExpressionSet) MatchInstances(instances []Instance) (bool, error) {
+func (m *MatchExpressionSet) MatchInstances(instances []feature.InstanceFeature) (bool, error) {
 	v, err := m.MatchGetInstances(instances)
 	return len(v) > 0, err
 }
 
-func (m *MatchExpressionSet) MatchGetInstances(instances []Instance) ([]Instance, error) {
-	ret := []Instance{}
+func (m *MatchExpressionSet) MatchGetInstances(instances []feature.InstanceFeature) ([]feature.InstanceFeature, error) {
+	ret := []feature.InstanceFeature{}
 
 	for _, i := range instances {
-		if match, err := m.MatchValues(i); err != nil {
+		if match, err := m.MatchValues(i.Attributes); err != nil {
 			return nil, err
 		} else if match {
 			ret = append(ret, i)
