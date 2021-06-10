@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/golang/protobuf v1.4.3
 	github.com/klauspost/cpuid/v2 v2.0.6
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
@@ -15,6 +14,7 @@ require (
 	golang.org/x/net v0.0.0-20210330142815-c8897c278d10
 	golang.org/x/text v0.3.5 // indirect
 	google.golang.org/grpc v1.27.1
+	google.golang.org/protobuf v1.26.0
 	k8s.io/api v0.20.5
 	k8s.io/apimachinery v0.20.5
 	k8s.io/client-go v0.20.5
