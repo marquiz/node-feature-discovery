@@ -1,0 +1,62 @@
+apiVersion: nfd.kubernetes.test/v1alpha1
+kind: LabelRule
+metadata:
+  name: npd-profile-example-1
+spec:
+  rules:
+  #
+  # A dummy example profile that is supposed to match virtually any Intel-based system
+  #
+  - name: profile.node.kubernetes.io/dummy-1
+    matchAll:
+    # Check that AVX instruction is available
+    - cpu.cpuid:
+        "AVX": { op: Exists }
+    # Check that at least one PCI device with Intel as a vendor is present
+    - pci.device:
+        "vendor": { op: In, value: ["8086"] }
+  #
+  # The following represents a purely artificial example of what an profile spec might look like.
+  # Not supposed to work (i.e. match) in any real-life deployment.
+  #
+  - name: profile.node.kubernetes.io/ran-fec-comb-a
+    matchAll:
+    #
+    # FPGA
+    #
+    - kernel.loadedmodule:
+        "iavf": { op: Exists }
+      pci.device:
+        "vendor": { op: In, value: ["8086"] }
+        "device": { op: In, value: ["abcd"] }
+    #
+    # RAN
+    #
+    - pci.device:
+        "vendor": { op: In, value: ["8086"] }
+        "device": { op: In, value: ["0d5c"] }
+    #
+    # General CPU and kernel features
+    #
+    - cpu.cpuid:
+        "AVX512F": { op: Exists }
+        # "power operator"
+      cpu.sst:
+        "bf.enabled": { op: IsTrue }
+    - kernel.config:
+        "PREEMPT_RT": { op: IsTrue }
+    #
+    # Detection offloaded to out-of-code hooks, generally stuff that is not fit for NFD upstream.
+    # In this example it would be libraries detected by an NPD side-car container
+    #
+    - local.label:
+        "system/ptp-version.minor": { op: Gt, value: ["7"] }
+        "system/ptp-notifications": { op: IsTrue }
+    #
+    # NOTE: the "kubernetes" features below are purely referential, not supported by NFD.
+    #       (might be in the future if needed)
+    #- kubernetes.kubelet:
+    #    "cpumanager.policy": { op: In, value: ["static"] }
+    #  kubernetes.cni:
+    #    "name": { op: In, value: ["multus"] }
+    #
