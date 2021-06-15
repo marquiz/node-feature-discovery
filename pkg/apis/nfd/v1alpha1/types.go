@@ -65,6 +65,9 @@ type Rule struct {
 	// MatchAll specifies a list of expression sets all of which must match
 	// +optional
 	MatchAll []MatchRule `json:"matchAll"`
+
+	// nameExpander is a private helper/cache for handling golang templates
+	name *nameExpander `json:"-"`
 }
 
 // MatchRule defines one complete set of rules to satisfy a successful match.
