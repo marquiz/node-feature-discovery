@@ -39,7 +39,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/node-feature-discovery/pkg/api/feature"
 	"sigs.k8s.io/node-feature-discovery/pkg/apihelper"
+	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/v1alpha1"
 	pb "sigs.k8s.io/node-feature-discovery/pkg/labeler"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/pkg/version"
@@ -454,6 +456,10 @@ func (m *nfdMaster) crLabels(r *pb.SetLabelsRequest) map[string]string {
 
 	l := make(map[string]string)
 	ruleSpecs, err := m.nfdController.lister.List(labels.Everything())
+	sort.Slice(ruleSpecs, func(i, j int) bool {
+		return ruleSpecs[i].Name < ruleSpecs[j].Name
+	})
+
 	if err != nil {
 		klog.Errorf("failed to list LabelRule resources: %w", err)
 		return nil
@@ -463,15 +469,21 @@ func (m *nfdMaster) crLabels(r *pb.SetLabelsRequest) map[string]string {
 	for _, spec := range ruleSpecs {
 		klog.V(1).Infof("executing custom LabelRule \"%s/%s\"", spec.ObjectMeta.Namespace, spec.ObjectMeta.Name)
 		for _, rule := range spec.Spec.Rules {
-			ruleLabels, err := rule.Match(r.Features)
+			ruleOut, err := rule.Match(r.Features)
 			if err != nil {
 				klog.Errorf("failed to process Rule %q: %w", rule.Name, err)
 				continue
 			}
-			for k, v := range ruleLabels {
-				l[k] = v
+
+			if !rule.NoLabel {
+				for k, v := range ruleOut {
+					l[k] = v
+				}
 			}
-			utils.KlogDump(2, "", "  ", ruleLabels)
+			utils.KlogDump(2, "", "  ", ruleOut)
+
+			// Feed back rule output to features map for subsequent rules to match
+			feature.InsertValues(r.Features, nfdv1alpha1.RuleBackrefDomain, nfdv1alpha1.RuleBackrefFeature, ruleOut)
 		}
 	}
 

@@ -114,9 +114,13 @@ func (s *customSource) GetLabels() (source.FeatureLabels, error) {
 			klog.Errorf("failed to discover feature: %q: %s", spec.Name, err.Error())
 			continue
 		}
-		for k, v := range ruleOut {
-			labels[k] = v
+		if !spec.NoLabel {
+			for k, v := range ruleOut {
+				labels[k] = v
+			}
 		}
+		// Feed back rule output to features map for subsequent rules to match
+		feature.InsertValues(domainFeatures, nfdv1alpha1.RuleBackrefDomain, nfdv1alpha1.RuleBackrefFeature, ruleOut)
 	}
 	return labels, nil
 }
@@ -154,6 +158,7 @@ func (s *FeatureSpec) Match(features map[string]*feature.DomainFeatures) (map[st
 			return nil, nil
 		}
 	}
+
 	return ret, nil
 }
 

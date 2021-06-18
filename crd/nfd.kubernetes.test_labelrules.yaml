@@ -134,6 +134,12 @@ spec:
                     name:
                       description: Name of the label to be generated.
                       type: string
+                    noLabel:
+                      description: NoLabel disables the label output of the rule.
+                        Output value(s) of the matching process are only added as
+                        values under a special "MATCHES" key for subsequent rules
+                        to use as input features for matching.
+                      type: boolean
                     value:
                       description: Value of the label, optional.
                       type: string
