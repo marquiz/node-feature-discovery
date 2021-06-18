@@ -34,3 +34,17 @@ func NewInstanceFeatures() *InstanceFeatures { return &InstanceFeatures{} }
 func NewInstanceFeature() *InstanceFeature {
 	return &InstanceFeature{Attributes: make(map[string]string)}
 }
+
+func InsertValues(f Features, domain, feature string, values map[string]string) {
+	if _, ok := f[domain]; !ok {
+		f[domain] = NewDomainFeatures()
+	}
+	if _, ok := f[domain].Values[feature]; !ok {
+		f[domain].Values[feature] = *NewValueFeatures()
+	}
+
+	features := f[domain].Values[feature].Features
+	for k, v := range values {
+		features[k] = v
+	}
+}

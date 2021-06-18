@@ -55,6 +55,12 @@ type Rule struct {
 	// +optional
 	Value *string `json:"value,omitempty"`
 
+	// NoLabel disables the label output of the rule. Output value(s) of the
+	// matching process are only added as values under a special "MATCHES" key
+	// for subsequent rules to use as input features for matching.
+	// +optional
+	NoLabel bool `json:"noLabel"`
+
 	// MatchAny specifies a list of expression sets one of which must match
 	// +optional
 	MatchAny []MatchRule `json:"matchAny"`
@@ -124,3 +130,12 @@ const (
 // MatchAllNames is a special key in MatchExpressionSet to use field names
 // (keys from the input) instead of values when matching.
 const MatchAllNames = "*"
+
+const (
+	// RuleBackrefDomain is the special feature domain for backreferencing
+	// output of preceding rules.
+	RuleBackrefDomain = "rule"
+	// RuleBackrefFeature is the special feature name for backreferencing
+	// output of preceding rules.
+	RuleBackrefFeature = "matched"
+)

@@ -118,3 +118,14 @@ sources:
     matchAny:
     - cpu.cpuid:
         "*": {op: InRegexp, value: ["^SSE"]}
+
+  - name: nolabel-test-1
+    matchAll:
+    - cpu.cpuid:
+    noLabel: true
+
+  - name:  BACKREF-test-1
+    matchAll:
+    - rule.matched:
+        system-test-1: "true"
+        nolabel-test-1: "true"
