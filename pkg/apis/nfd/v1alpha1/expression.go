@@ -71,7 +71,7 @@ func (m *MatchExpression) Validate() error {
 			return fmt.Errorf("Values should be empty for Op %q (got %v)", m.Op, m.Value)
 		}
 	case MatchGt, MatchLt:
-		if len(m.Value) != 0 {
+		if len(m.Value) != 1 {
 			return fmt.Errorf("Values should contain exactly one element for Op %q (got %v)", m.Op, m.Value)
 		}
 	default:
