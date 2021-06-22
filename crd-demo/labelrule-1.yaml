@@ -1,0 +1,16 @@
+apiVersion: nfd.kubernetes.test/v1alpha1
+kind: LabelRule
+metadata:
+  name: rule-1
+spec:
+  rules:
+  #
+  # Demonstrate a simple rule with some expressions
+  #
+  - name: "intel.com/label-1"
+    matchAll:
+    - kernel.loadedmodule:
+        "e1000e": { op: Exists }
+      kernel.config:
+        "MAX_RAW_DEVS": { op: Gt, value: ["8000"] }
+        "X86": { op: Exists }

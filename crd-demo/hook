@@ -1,0 +1,3 @@
+#!/bin/sh
+echo intel.com/value.1
+echo intel.com/value.2=foo

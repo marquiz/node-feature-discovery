@@ -1,0 +1,26 @@
+apiVersion: nfd.kubernetes.test/v1alpha1
+kind: LabelRule
+metadata:
+  name: rule-3
+spec:
+  rules:
+  #
+  # Demonstrate Ops
+  #
+  - name: "intel.com/label-3"
+    matchAny:
+    - cpu.cpuid:
+        AVX: { op: Exists }
+        AVX512F: { op: DoesNotExist }
+      cpu.pstate:
+        turbo: { op: IsTrue }
+      cpu.cstate:
+        enabled: { op: IsTrue }
+      pci.device:
+        class: { op: In, value: ["0200", "03"] }
+        device: { op: NotIn, value: ["1234", "5678"] }
+      kernel.version:
+        major: { op: Gt, value: ["4"] }
+        minor: { op: Lt, value: ["10"] }
+      system.osrelease:
+        PRETTY_NAME: { op: InRegexp, value: ["^CentOS", "^Ubuntu"] }

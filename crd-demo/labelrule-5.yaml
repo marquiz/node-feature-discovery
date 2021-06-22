@@ -1,0 +1,23 @@
+apiVersion: nfd.kubernetes.test/v1alpha1
+kind: LabelRule
+metadata:
+  name: rule-5
+spec:
+  rules:
+  #
+  # Demonstrate usage of external features from hooks and feature files and the noLabel field
+  #
+  - name: "intel.com/label-5"
+    matchAll:
+    - local.label:
+        "intel.com-feature-A": { op: Exists }
+        "intel.com-knob-X": { op: In, value: ["value-Y"] }
+        "intel.com-knob-Z": { op: Lt, value: ["100"] }
+
+  - name: "intel.com/label-5.2"
+    noLabel: true
+    value: "123"
+    matchAll:
+    - local.label:
+        "intel.com/value.1": { op: IsTrue }
+        "intel.com/value.2": { op: In, value: ["foo"] }

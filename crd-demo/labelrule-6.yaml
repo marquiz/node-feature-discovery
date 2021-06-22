@@ -1,0 +1,15 @@
+apiVersion: nfd.kubernetes.test/v1alpha1
+kind: LabelRule
+metadata:
+  name: rule-6
+spec:
+  rules:
+  #
+  # Demonstrate backreferences
+  #
+  - name: "intel.com/label-6"
+    matchAll:
+    - rule.matched:
+        "intel.com/label-2": { op: IsTrue }
+        "intel.com/label-5.2": { op: Gt, value: ["100"] }
+
