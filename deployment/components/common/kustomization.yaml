@@ -14,6 +14,10 @@ patches:
   target:
     labelSelector: app=nfd
     name: nfd-master
+- path: worker-affinity.yaml
+  target:
+    labelSelector: app=nfd
+    name: nfd-worker
 - path: worker-mounts.yaml
   target:
     labelSelector: app=nfd
