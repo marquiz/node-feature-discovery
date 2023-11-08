@@ -7,8 +7,8 @@ spec:
     # Positive test expected to set the annotations
     - name: "e2e-annotation-test"
       annotations:
-        defaul-ns-annotation: "foo"
-        feature.node.kubernetes.io/defaul-ns-annotation-2: "bar"
+        no-ns-annotation: "foo"
+        feature.node.kubernetes.io/default-ns-annotation: "bar"
         custom.vendor.io/feature: "baz"
         kubernetes.io/feature: "denied"
         subns.kubernetes.io/blah: "denied"

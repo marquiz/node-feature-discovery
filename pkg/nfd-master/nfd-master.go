@@ -523,9 +523,6 @@ func (m *nfdMaster) updateMasterNode() error {
 func (m *nfdMaster) filterFeatureLabels(labels Labels, features *nfdv1alpha1.Features) (Labels, ExtendedResources) {
 	outLabels := Labels{}
 	for name, value := range labels {
-		// Add possibly missing default ns
-		name := addNs(name, nfdv1alpha1.FeatureLabelNs)
-
 		if value, err := m.filterFeatureLabel(name, value, features); err != nil {
 			klog.ErrorS(err, "ignoring label", "labelKey", name, "labelValue", value)
 			nodeLabelsRejected.Inc()
@@ -537,8 +534,6 @@ func (m *nfdMaster) filterFeatureLabels(labels Labels, features *nfdv1alpha1.Fea
 	// Remove labels which are intended to be extended resources
 	extendedResources := ExtendedResources{}
 	for extendedResourceName := range m.config.ResourceLabels {
-		// Add possibly missing default ns
-		extendedResourceName = addNs(extendedResourceName, nfdv1alpha1.FeatureLabelNs)
 		if value, ok := outLabels[extendedResourceName]; ok {
 			if _, err := strconv.Atoi(value); err != nil {
 				klog.ErrorS(err, "bad label value encountered for extended resource", "labelKey", extendedResourceName, "labelValue", value)
@@ -555,7 +550,6 @@ func (m *nfdMaster) filterFeatureLabels(labels Labels, features *nfdv1alpha1.Fea
 }
 
 func (m *nfdMaster) filterFeatureLabel(name, value string, features *nfdv1alpha1.Features) (string, error) {
-
 	//Validate label name
 	if errs := k8svalidation.IsQualifiedName(name); len(errs) > 0 {
 		return "", fmt.Errorf("invalid name %q: %s", name, strings.Join(errs, "; "))
@@ -563,6 +557,9 @@ func (m *nfdMaster) filterFeatureLabel(name, value string, features *nfdv1alpha1
 
 	// Check label namespace, filter out if ns is not whitelisted
 	ns, base := splitNs(name)
+	if ns == "" {
+		return "", fmt.Errorf("labels without namespace (prefix/) not allowed")
+	}
 	if ns != nfdv1alpha1.FeatureLabelNs && ns != nfdv1alpha1.ProfileLabelNs &&
 		!strings.HasSuffix(ns, nfdv1alpha1.FeatureLabelSubNsSuffix) && !strings.HasSuffix(ns, nfdv1alpha1.ProfileLabelSubNsSuffix) {
 		// If the namespace is denied, and not present in the extraLabelNs, label will be ignored
@@ -794,9 +791,6 @@ func (m *nfdMaster) nfdAPIUpdateOneNode(nodeName string) error {
 func filterExtendedResources(features *nfdv1alpha1.Features, extendedResources ExtendedResources) ExtendedResources {
 	outExtendedResources := ExtendedResources{}
 	for name, value := range extendedResources {
-		// Add possibly missing default ns
-		name = addNs(name, nfdv1alpha1.ExtendedResourceNs)
-
 		capacity, err := filterExtendedResource(name, value, features)
 		if err != nil {
 			klog.ErrorS(err, "failed to create extended resources", "extendedResourceName", name, "extendedResourceValue", value)
@@ -811,6 +805,9 @@ func filterExtendedResources(features *nfdv1alpha1.Features, extendedResources E
 func filterExtendedResource(name, value string, features *nfdv1alpha1.Features) (string, error) {
 	// Check if given NS is allowed
 	ns, _ := splitNs(name)
+	if ns == "" {
+		return "", fmt.Errorf("extended resource without namespace (prefix/) not allowed")
+	}
 	if ns != nfdv1alpha1.ExtendedResourceNs && !strings.HasSuffix(ns, nfdv1alpha1.ExtendedResourceSubNsSuffix) {
 		if ns == "kubernetes.io" || strings.HasSuffix(ns, ".kubernetes.io") {
 			return "", fmt.Errorf("namespace %q is not allowed", ns)
@@ -1413,16 +1410,17 @@ func (m *nfdMaster) filterFeatureAnnotations(annotations map[string]string) map[
 	outAnnotations := make(map[string]string)
 
 	for annotation, value := range annotations {
-		// Add possibly missing default ns
-		annotation := addNs(annotation, nfdv1alpha1.FeatureAnnotationNs)
-
 		ns, _ := splitNs(annotation)
 
 		// Check annotation namespace, filter out if ns is not whitelisted
 		if ns != nfdv1alpha1.FeatureAnnotationNs && !strings.HasSuffix(ns, nfdv1alpha1.FeatureAnnotationSubNsSuffix) {
-			// If the namespace is denied, and not present in the extraLabelNs, label will be ignored
+			// If the namespace is denied the annotation will be ignored
+			if ns == "" {
+				klog.ErrorS(fmt.Errorf("labels without namespace (prefix/) not allowed"), fmt.Sprintf("Ignoring annotation %s", annotation))
+				continue
+			}
 			if ns == "kubernetes.io" || strings.HasSuffix(ns, ".kubernetes.io") || ns == nfdv1alpha1.AnnotationNs {
-				klog.ErrorS(fmt.Errorf("namespace %v is not allowed", ns), fmt.Sprintf("Ignoring annotation %v\n", annotation))
+				klog.ErrorS(fmt.Errorf("namespace %q is not allowed", ns), fmt.Sprintf("Ignoring annotation %s", annotation))
 				continue
 			}
 		}

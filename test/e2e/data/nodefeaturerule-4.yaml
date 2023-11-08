@@ -6,7 +6,8 @@ spec:
   rules:
     - name: "e2e no ns rule"
       extendedResources:
-        nons: "123"
+        feature.node.kubernetes.io/e2e-nfr-test-1: "123"
+        nons: "456"
       matchFeatures:
         - feature: "fake.attribute"
           matchExpressions:

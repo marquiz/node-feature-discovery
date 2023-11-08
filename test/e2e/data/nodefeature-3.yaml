@@ -9,4 +9,6 @@ spec:
     custom.vendor.io/e2e-nodefeature-test-3: "vendor-ns"
     kubernetes.io/denied-label: "kubernetes-ns-1"
     subns.kubernetes.io/denied-label: "kubernetes-ns-2"
-    e2e-nodefeature-test-4: "obj-4"
+    feature.node.kubernetes.io/e2e-nodefeature-test-4: "obj-4"
+    e2e-nodefeature-test-5: "obj-5"
+

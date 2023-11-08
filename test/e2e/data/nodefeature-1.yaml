@@ -25,7 +25,11 @@ spec:
             attr_2: "9"
   # Labels to be created
   labels:
-    e2e-nodefeature-test-1: "obj-1"
-    e2e-nodefeature-test-2: "obj-1"
+    feature.node.kubernetes.io/e2e-nodefeature-test-1: "obj-1"
+    feature.node.kubernetes.io/e2e-nodefeature-test-2: "obj-1"
     # Override feature from nfd-worker
-    fake-fakefeature3: "overridden"
+    feature.node.kubernetes.io/fake-fakefeature3: "overridden"
+    # Prefixes that should always be denied
+    kubernetes.io/e2e-denied-feature-1: "val-1"
+    sub.ns.kubernetes.io/e2e-denied-feature-2: "val-2"
+    e2e-denied-feature-3: "val-3"

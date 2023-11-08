@@ -421,10 +421,10 @@ var _ = SIGDescribe("NFD master and worker", func() {
 					targetNodeNameWildcard := fmt.Sprintf("%s.*%s", targetNodeName[:2], targetNodeName[4:])
 
 					By("Creating the configmaps")
-					targetLabelName := "nodename-test"
+					targetLabelName := "example.io/nodename-test"
 					targetLabelValue := "true"
 
-					targetLabelNameWildcard := "nodename-test-wildcard"
+					targetLabelNameWildcard := "example.io/nodename-test-wildcard"
 					targetLabelValueWildcard := "customValue"
 
 					// create 2 configmaps
@@ -480,8 +480,8 @@ var _ = SIGDescribe("NFD master and worker", func() {
 					By("Verifying node labels")
 					expectedLabels := map[string]k8sLabels{
 						targetNodeName: {
-							nfdv1alpha1.FeatureLabelNs + "/" + targetLabelName:         targetLabelValue,
-							nfdv1alpha1.FeatureLabelNs + "/" + targetLabelNameWildcard: targetLabelValueWildcard,
+							targetLabelName:         targetLabelValue,
+							targetLabelNameWildcard: targetLabelValueWildcard,
 						},
 						"*": {},
 					}
@@ -782,13 +782,13 @@ core:
 					eventuallyNonControlPlaneNodes(ctx, f.ClientSet).Should(MatchTaints(expectedTaints, nodes))
 					eventuallyNonControlPlaneNodes(ctx, f.ClientSet).Should(MatchAnnotations(expectedAnnotations, nodes))
 
-					expectedAnnotations["*"]["nfd.node.kubernetes.io/extended-resources"] = "nons,vendor.feature.node.kubernetes.io/static,vendor.io/dynamic"
+					expectedAnnotations["*"]["nfd.node.kubernetes.io/extended-resources"] = "e2e-nfr-test-1,vendor.feature.node.kubernetes.io/static,vendor.io/dynamic"
 
 					expectedCapacity := map[string]corev1.ResourceList{
 						"*": {
-							"feature.node.kubernetes.io/nons":          resourcev1.MustParse("123"),
-							"vendor.io/dynamic":                        resourcev1.MustParse("10"),
-							"vendor.feature.node.kubernetes.io/static": resourcev1.MustParse("123"),
+							"feature.node.kubernetes.io/e2e-nfr-test-1": resourcev1.MustParse("123"),
+							"vendor.io/dynamic":                         resourcev1.MustParse("10"),
+							"vendor.feature.node.kubernetes.io/static":  resourcev1.MustParse("123"),
 						},
 					}
 
@@ -815,10 +815,9 @@ core:
 					Expect(testutils.CreateNodeFeatureRulesFromFile(ctx, nfdClient, "nodefeaturerule-5.yaml")).NotTo(HaveOccurred())
 
 					By("Verifying node annotations from NodeFeatureRules #5")
-					expectedAnnotations["*"][nfdv1alpha1.FeatureAnnotationNs+"/defaul-ns-annotation"] = "foo"
-					expectedAnnotations["*"][nfdv1alpha1.FeatureAnnotationNs+"/defaul-ns-annotation-2"] = "bar"
+					expectedAnnotations["*"][nfdv1alpha1.FeatureAnnotationNs+"/default-ns-annotation"] = "bar"
 					expectedAnnotations["*"]["custom.vendor.io/feature"] = "baz"
-					expectedAnnotations["*"][nfdv1alpha1.FeatureAnnotationsTrackingAnnotation] = "custom.vendor.io/feature,defaul-ns-annotation,defaul-ns-annotation-2"
+					expectedAnnotations["*"][nfdv1alpha1.FeatureAnnotationsTrackingAnnotation] = "custom.vendor.io/feature,default-ns-annotation"
 
 					eventuallyNonControlPlaneNodes(ctx, f.ClientSet).Should(MatchAnnotations(expectedAnnotations, nodes))
 
@@ -827,8 +826,7 @@ core:
 					Expect(err).NotTo(HaveOccurred())
 
 					By("Verifying node annotations from NodeFeatureRules #5 are deleted")
-					delete(expectedAnnotations["*"], nfdv1alpha1.FeatureAnnotationNs+"/defaul-ns-annotation")
-					delete(expectedAnnotations["*"], nfdv1alpha1.FeatureAnnotationNs+"/defaul-ns-annotation-2")
+					delete(expectedAnnotations["*"], nfdv1alpha1.FeatureAnnotationNs+"/default-ns-annotation")
 					delete(expectedAnnotations["*"], "custom.vendor.io/feature")
 					delete(expectedAnnotations["*"], nfdv1alpha1.FeatureAnnotationsTrackingAnnotation)
 					eventuallyNonControlPlaneNodes(ctx, f.ClientSet).Should(MatchAnnotations(expectedAnnotations, nodes))

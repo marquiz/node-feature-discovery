@@ -4,5 +4,5 @@ metadata:
   name: zzz-e2e-features-2
 spec:
   labels:
-    e2e-nodefeature-test-1: "overridden-from-obj-2"
-    e2e-nodefeature-test-3: "obj-2"
+    feature.node.kubernetes.io/e2e-nodefeature-test-1: "overridden-from-obj-2"
+    feature.node.kubernetes.io/e2e-nodefeature-test-3: "obj-2"
