@@ -71,6 +71,7 @@ type Annotations map[string]string
 
 // NFDConfig contains the configuration settings of NfdMaster.
 type NFDConfig struct {
+	AutoDefaultNs     bool
 	DenyLabelNs       utils.StringSetVal
 	ExtraLabelNs      utils.StringSetVal
 	LabelWhiteList    utils.RegexpVal
@@ -523,6 +524,9 @@ func (m *nfdMaster) updateMasterNode() error {
 func (m *nfdMaster) filterFeatureLabels(labels Labels, features *nfdv1alpha1.Features) (Labels, ExtendedResources) {
 	outLabels := Labels{}
 	for name, value := range labels {
+		if m.config.AutoDefaultNs {
+			name = addNs(name, nfdv1alpha1.FeatureLabelNs)
+		}
 		if value, err := m.filterFeatureLabel(name, value, features); err != nil {
 			klog.ErrorS(err, "ignoring label", "labelKey", name, "labelValue", value)
 			nodeLabelsRejected.Inc()
@@ -534,6 +538,9 @@ func (m *nfdMaster) filterFeatureLabels(labels Labels, features *nfdv1alpha1.Fea
 	// Remove labels which are intended to be extended resources
 	extendedResources := ExtendedResources{}
 	for extendedResourceName := range m.config.ResourceLabels {
+		if m.config.AutoDefaultNs {
+			extendedResourceName = addNs(extendedResourceName, nfdv1alpha1.FeatureLabelNs)
+		}
 		if value, ok := outLabels[extendedResourceName]; ok {
 			if _, err := strconv.Atoi(value); err != nil {
 				klog.ErrorS(err, "bad label value encountered for extended resource", "labelKey", extendedResourceName, "labelValue", value)
@@ -788,9 +795,13 @@ func (m *nfdMaster) nfdAPIUpdateOneNode(nodeName string) error {
 
 // filterExtendedResources filters extended resources and returns a map
 // of valid extended resources.
-func filterExtendedResources(features *nfdv1alpha1.Features, extendedResources ExtendedResources) ExtendedResources {
+func (m *nfdMaster) filterExtendedResources(features *nfdv1alpha1.Features, extendedResources ExtendedResources) ExtendedResources {
 	outExtendedResources := ExtendedResources{}
 	for name, value := range extendedResources {
+		if m.config.AutoDefaultNs {
+			name = addNs(name, nfdv1alpha1.ExtendedResourceNs)
+		}
+
 		capacity, err := filterExtendedResource(name, value, features)
 		if err != nil {
 			klog.ErrorS(err, "failed to create extended resources", "extendedResourceName", name, "extendedResourceValue", value)
@@ -854,7 +865,7 @@ func (m *nfdMaster) refreshNodeFeatures(cli *kubernetes.Clientset, nodeName stri
 	for k, v := range crExtendedResources {
 		extendedResources[k] = v
 	}
-	extendedResources = filterExtendedResources(features, extendedResources)
+	extendedResources = m.filterExtendedResources(features, extendedResources)
 
 	// Annotations
 	featureAnnotations := m.filterFeatureAnnotations(crAnnotations)
@@ -1410,6 +1421,10 @@ func (m *nfdMaster) filterFeatureAnnotations(annotations map[string]string) map[
 	outAnnotations := make(map[string]string)
 
 	for annotation, value := range annotations {
+		if m.config.AutoDefaultNs {
+			annotation = addNs(annotation, nfdv1alpha1.FeatureAnnotationNs)
+		}
+
 		ns, _ := splitNs(annotation)
 
 		// Check annotation namespace, filter out if ns is not whitelisted
