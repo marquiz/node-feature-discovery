@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +23,7 @@ import (
 
 // NodeFeatureList contains a list of NodeFeature objects.
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NodeFeatureList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -35,6 +36,7 @@ type NodeFeatureList struct {
 // NodeFeature resource holds the features discovered for one node in the
 // cluster.
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NodeFeature struct {
@@ -49,66 +51,36 @@ type NodeFeature struct {
 type NodeFeatureSpec struct {
 	// Features is the full "raw" features data that has been discovered.
 	// +optional
-	Features Features `json:"features"`
+	Features []Feature `json:"features"`
 	// Labels is the set of node labels that are requested to be created.
 	// +optional
 	Labels map[string]string `json:"labels"`
 }
 
-// Features is the collection of all discovered features.
-//
+// Feature is a set of features each of which is an instance having multiple attributes.
 // +protobuf=true
-type Features struct {
-	// Flags contains all the flag-type features of the node.
-	// +optional
-	Flags map[string]FlagFeatureSet `json:"flags" protobuf:"bytes,1,rep,name=flags"`
-	// Attributes contains all the attribute-type features of the node.
-	// +optional
-	Attributes map[string]AttributeFeatureSet `json:"attributes" protobuf:"bytes,2,rep,name=vattributes"`
-	// Instances contains all the instance-type features of the node.
-	// +optional
-	Instances map[string]InstanceFeatureSet `json:"instances" protobuf:"bytes,3,rep,name=instances"`
-}
-
-// FlagFeatureSet is a set of simple features only containing names without values.
-//
-// +protobuf=true
-type FlagFeatureSet struct {
+type Feature struct {
+	// Name of the feature.
+	Name string `json:"name" protobuf:"bytes,1,rep,name=name"`
 	// Individual features of the feature set.
-	Elements map[string]Nil `json:"elements" protobuf:"bytes,1,rep,name=elements"`
+	Elements []FeatureElement `json:"elements" protobuf:"bytes,2,rep,name=elements"`
 }
 
-// AttributeFeatureSet is a set of features having string value.
+// FeatureElement represents one element of a feature, e.g. one cpuid flag,
+// kernel config flag or device.
 //
 // +protobuf=true
-type AttributeFeatureSet struct {
-	// Individual features of the feature set.
-	Elements map[string]string `json:"elements" protobuf:"bytes,1,rep,name=elements"`
+type FeatureElement struct {
+	// Name of the feature element, e.g. one cpuid flag or kernel config flag.
+	Name string `json:"name" protobuf:"bytes,1,rep,name=name"`
+	// Attributes of the feature element.
+	// +optional
+	Attributes map[string]string `json:"attributes" protobuf:"bytes,2,rep,name=attributes"`
 }
-
-// InstanceFeatureSet is a set of features each of which is an instance having multiple attributes.
-//
-// +protobuf=true
-type InstanceFeatureSet struct {
-	// Individual features of the feature set.
-	Elements []InstanceFeature `json:"elements" protobuf:"bytes,1,rep,name=elements"`
-}
-
-// InstanceFeature represents one instance of a complex features, e.g. a device.
-//
-// +protobuf=true
-type InstanceFeature struct {
-	// Attributes of the instance feature.
-	Attributes map[string]string `json:"attributes" protobuf:"bytes,1,rep,name=attributes"`
-}
-
-// Nil is a dummy empty struct for protobuf compatibility
-//
-// +protobuf=true
-type Nil struct{}
 
 // NodeFeatureRuleList contains a list of NodeFeatureRule objects.
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NodeFeatureRuleList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -121,6 +93,7 @@ type NodeFeatureRuleList struct {
 // NodeFeatureRule resource specifies a configuration for feature-based
 // customization of node objects, such as node labeling.
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Cluster,shortName=nfr
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient
@@ -141,6 +114,7 @@ type NodeFeatureRuleSpec struct {
 
 // NodeFeatureGroup resource holds Node pools by featureGroup
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Namespaced,shortName=nfg
 // +kubebuilder:subresource:status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -180,6 +154,7 @@ type FeatureGroupNode struct {
 
 // NodeFeatureGroupList contains a list of NodeFeatureGroup objects.
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type NodeFeatureGroupList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -266,26 +241,17 @@ type FeatureMatcher []FeatureMatcherTerm
 // requirements (specified as MatchExpressions) are evaluated against each
 // element in the feature set.
 type FeatureMatcherTerm struct {
-	// Feature is the name of the feature set to match against.
-	Feature string `json:"feature"`
-	// MatchExpressions is the set of per-element expressions evaluated. These
-	// match against the value of the specified elements.
-	// +optional
-	MatchExpressions *MatchExpressionSet `json:"matchExpressions"`
-	// MatchName in an expression that is matched against the name of each
-	// element in the feature set.
-	// +optional
-	MatchName *MatchExpression `json:"matchName"`
+	Feature          string             `json:"feature"`
+	MatchExpressions []*MatchExpression `json:"matchExpressions"`
 }
-
-// MatchExpressionSet contains a set of MatchExpressions, each of which is
-// evaluated against a set of input values.
-type MatchExpressionSet map[string]*MatchExpression
 
 // MatchExpression specifies an expression to evaluate against a set of input
 // values. It contains an operator that is applied when matching the input and
 // an array of values that the operator evaluates the input against.
 type MatchExpression struct {
+	// Key is the key of feature attributes to look for
+	Key string `json:"key"`
+
 	// Op is the operator to be applied.
 	Op MatchOp `json:"op"`
 
@@ -355,7 +321,3 @@ const (
 	// output of preceding rules.
 	RuleBackrefFeature = "matched"
 )
-
-// MatchAllNames is a special key in MatchExpressionSet to use field names
-// (keys from the input) instead of values when matching.
-const MatchAllNames = "*"

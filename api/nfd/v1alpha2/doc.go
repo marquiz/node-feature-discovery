@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 is the v1alpha1 version of the nfd API.
+// Package v1alpha2 is the v1alpha2 version of the nfd API.
 // +k8s:deepcopy-gen=package
 // +kubebuilder:object:generate=true
 // +groupName=nfd.k8s-sigs.io
-package v1alpha1
+package v1alpha2
 
 //go:generate ./generate.sh

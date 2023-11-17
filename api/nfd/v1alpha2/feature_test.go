@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"testing"
@@ -22,169 +22,111 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFlagFeatureSet(t *testing.T) {
-	f1 := FlagFeatureSet{}
-	f2 := FlagFeatureSet{}
-	var expectedElems map[string]Nil = nil
+func TestFeature(t *testing.T) {
+	f1 := Feature{}
+	f2 := Feature{}
+	var expectedElems []FeatureElement = nil
 
 	f2.MergeInto(&f1)
 	assert.Equal(t, expectedElems, f1.Elements)
 
-	f2 = NewFlagFeatures()
-	expectedElems = make(map[string]Nil)
+	f2 = NewFeature("feat")
+	expectedElems = []FeatureElement{}
 	f2.MergeInto(&f1)
 	assert.Equal(t, expectedElems, f1.Elements)
 
-	f2 = NewFlagFeatures("k1")
-	expectedElems["k1"] = Nil{}
+	f2 = NewFeature("feat", FeatureElement{})
+	expectedElems = append(expectedElems, FeatureElement{})
 	f2.MergeInto(&f1)
 	assert.Equal(t, expectedElems, f1.Elements)
 
-	f2 = NewFlagFeatures("k2")
-	expectedElems["k2"] = Nil{}
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-}
-
-func TestAttributeFeatureSet(t *testing.T) {
-	f1 := AttributeFeatureSet{}
-	f2 := AttributeFeatureSet{}
-	var expectedElems map[string]string = nil
-
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-
-	f2 = NewAttributeFeatures(map[string]string{})
-	expectedElems = make(map[string]string)
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-
-	f2 = NewAttributeFeatures(map[string]string{"k1": "v1"})
-	expectedElems["k1"] = "v1"
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-
-	f2 = NewAttributeFeatures(map[string]string{"k2": "v2"})
-	expectedElems["k2"] = "v2"
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-
-	f2 = NewAttributeFeatures(map[string]string{"k1": "v1.overridden", "k3": "v3"})
-	expectedElems["k1"] = "v1.overridden"
-	expectedElems["k3"] = "v3"
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-}
-
-func TestInstanceFeatureSet(t *testing.T) {
-	f1 := InstanceFeatureSet{}
-	f2 := InstanceFeatureSet{}
-	var expectedElems []InstanceFeature = nil
-
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-
-	f2 = NewInstanceFeatures()
-	expectedElems = []InstanceFeature{}
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-
-	f2 = NewInstanceFeatures(InstanceFeature{})
-	expectedElems = append(expectedElems, InstanceFeature{})
-	f2.MergeInto(&f1)
-	assert.Equal(t, expectedElems, f1.Elements)
-
-	f2 = NewInstanceFeatures(InstanceFeature{
-		Attributes: map[string]string{
-			"a1": "v1",
-			"a2": "v2",
-		},
-	})
-	expectedElems = append(expectedElems, *NewInstanceFeature(map[string]string{"a1": "v1", "a2": "v2"}))
+	f2 = NewFeature("feat",
+		FeatureElement{
+			Name: "e1",
+			Attributes: map[string]string{
+				"a1": "v1",
+				"a2": "v2",
+			},
+		})
+	expectedElems = append(expectedElems, *NewFeatureElement("e1", map[string]string{"a1": "v1", "a2": "v2"}))
 	f2.MergeInto(&f1)
 	assert.Equal(t, expectedElems, f1.Elements)
 
 	f2.Elements[0].Attributes["a2"] = "v2.2"
-	expectedElems = append(expectedElems, *NewInstanceFeature(map[string]string{"a1": "v1", "a2": "v2.2"}))
+	expectedElems = append(expectedElems, *NewFeatureElement("e1", map[string]string{"a1": "v1", "a2": "v2.2"}))
 	f2.MergeInto(&f1)
 	assert.Equal(t, expectedElems, f1.Elements)
 }
 
-func TestFeature(t *testing.T) {
-	f := Features{}
-
-	// Test InsertAttributeFeatures()
-	f.InsertAttributeFeatures("dom", "attr", map[string]string{"k1": "v1", "k2": "v2"})
-	expectedAttributes := map[string]string{"k1": "v1", "k2": "v2"}
-	assert.Equal(t, expectedAttributes, f.Attributes["dom.attr"].Elements)
-
-	f.InsertAttributeFeatures("dom", "attr", map[string]string{"k2": "v2.override", "k3": "v3"})
-	expectedAttributes["k2"] = "v2.override"
-	expectedAttributes["k3"] = "v3"
-	assert.Equal(t, expectedAttributes, f.Attributes["dom.attr"].Elements)
-
-	// Test merging
-	f = Features{}
-	f2 := Features{}
-	expectedFeatures := Features{}
-
-	f2.MergeInto(&f)
-	assert.Equal(t, expectedFeatures, f)
-
-	f2 = *NewFeatures()
-	f2.Flags["dom.flag"] = NewFlagFeatures("k1", "k2")
-	f2.Attributes["dom.attr"] = NewAttributeFeatures(map[string]string{"k1": "v1", "k2": "v2"})
-	f2.Instances["dom.inst"] = NewInstanceFeatures(
-		*NewInstanceFeature(map[string]string{"a1": "v1.1", "a2": "v1.2"}),
-		*NewInstanceFeature(map[string]string{"a1": "v2.1", "a2": "v2.2"}),
-	)
-	f2.MergeInto(&f)
-	assert.Equal(t, f2, f)
-
-	f2.Flags["dom.flag"] = NewFlagFeatures("k3")
-	f2.Attributes["dom.attr"] = NewAttributeFeatures(map[string]string{"k1": "v1.override"})
-	f2.Instances["dom.inst"] = NewInstanceFeatures(*NewInstanceFeature(map[string]string{"a1": "v3.1", "a3": "v3.3"}))
-	f2.MergeInto(&f)
-	expectedFeatures = *NewFeatures()
-	expectedFeatures.Flags["dom.flag"] = FlagFeatureSet{Elements: map[string]Nil{"k1": {}, "k2": {}, "k3": {}}}
-	expectedFeatures.Attributes["dom.attr"] = AttributeFeatureSet{Elements: map[string]string{"k1": "v1.override", "k2": "v2"}}
-	expectedFeatures.Instances["dom.inst"] = InstanceFeatureSet{
-		Elements: []InstanceFeature{
-			{Attributes: map[string]string{"a1": "v1.1", "a2": "v1.2"}},
-			{Attributes: map[string]string{"a1": "v2.1", "a2": "v2.2"}},
-			{Attributes: map[string]string{"a1": "v3.1", "a3": "v3.3"}},
-		},
-	}
-	assert.Equal(t, expectedFeatures, f)
-}
-
 func TestFeatureSpec(t *testing.T) {
-	// Test merging
+	// Test FeatureExists() and InserFeature()
 	f := NodeFeatureSpec{}
+	assert.Empty(t, f.FeatureExists("dom.name"), "empty features shouldn't contain anything")
+
+	f.InsertFeature("dom.inst", "i1", map[string]string{"k1": "v1", "k2": "v2"})
+	expectedAttributes := map[string]string{"k1": "v1", "k2": "v2"}
+	assert.True(t, f.FeatureExists("dom.inst"), "feature should exist")
+	assert.Equal(t, expectedAttributes, f.Features[0].Elements[0].Attributes)
+
+	f.InsertFeature("dom.inst", "i1", map[string]string{"k2": "v2.override", "k3": "v3"})
+	expectedAttributes = map[string]string{"k2": "v2.override", "k3": "v3"}
+	assert.Equal(t, expectedAttributes, f.Features[0].Elements[0])
+
+	// Test merging
 	f2 := NodeFeatureSpec{}
 	expectedFeatures := NodeFeatureSpec{}
 
 	f2.MergeInto(&f)
 	assert.Equal(t, expectedFeatures, f)
 
-	f2 = *NewNodeFeatureSpec()
 	f2.Labels = map[string]string{"l1": "v1", "l2": "v2"}
-	f2.Features = *NewFeatures()
-	f2.Features.Flags["dom.flag"] = NewFlagFeatures("k1", "k2")
+	f2.InsertFeatures("dom.flags",
+		FeatureElement{Name: "k1"},
+		FeatureElement{Name: "k2"})
+	f2.InsertFeatures("dom.attr",
+		FeatureElement{Name: "k1", Attributes: map[string]string{"val": "v1"}},
+		FeatureElement{Name: "k2", Attributes: map[string]string{"val": "v1"}})
+	f2.InsertFeatures("dom.inst",
+		FeatureElement{Name: "i1", Attributes: map[string]string{"a1": "v1.1", "a2": "v1.2"}},
+		FeatureElement{Name: "i2", Attributes: map[string]string{"a1": "v2.1", "a2": "v2.2"}})
 
-	expectedFeatures = *f2.DeepCopy()
 	f2.MergeInto(&f)
+	assert.Equal(t, f2, f)
+
+	f2.InsertFeature("dom.flag", "k3", nil)
+	f2.InsertFeature("dom.attr", "k1", map[string]string{"val": "v1.override"})
+	f2.InsertFeature("dom.inst", "i2", map[string]string{"a1": "v2.2"})
+	f2.InsertFeature("dom.inst", "i3", map[string]string{"a1": "v3.1", "a3": "v3.3"})
+
+	f2.MergeInto(&f)
+
+	expectedFeatures = NodeFeatureSpec{
+		Features: []Feature{
+			NewFeature("dom.flag", FeatureElement{Name: "k1"}, FeatureElement{Name: "k2"}),
+			NewFeature("dom.attr",
+				FeatureElement{Name: "k1", Attributes: map[string]string{"val": "v1.override"}},
+				FeatureElement{Name: "k2", Attributes: map[string]string{"val": "v2"}}),
+			NewFeature("dom.inst",
+				FeatureElement{Name: "i1", Attributes: map[string]string{"a1": "v1.1", "a2": "v1.2"}},
+				FeatureElement{Name: "i2", Attributes: map[string]string{"a1": "v2.2"}},
+				FeatureElement{Name: "i3", Attributes: map[string]string{"a1": "v3.1", "a3": "v3.3"}}),
+		},
+		Labels: map[string]string{"l1": "v1", "l2": "v2"},
+	}
 	assert.Equal(t, expectedFeatures, f)
 
 	// Check that second merge updates the object correctly
 	f2 = *NewNodeFeatureSpec()
 	f2.Labels = map[string]string{"l1": "v1.override", "l3": "v3"}
-	f2.Features = *NewFeatures()
-	f2.Features.Flags["dom.flag2"] = NewFlagFeatures("k3")
+	f2.InsertFeature("dom.flag2", "k3", nil)
 
 	expectedFeatures.Labels["l1"] = "v1.override"
 	expectedFeatures.Labels["l3"] = "v3"
-	expectedFeatures.Features.Flags["dom.flag2"] = FlagFeatureSet{Elements: map[string]Nil{"k3": {}}}
+	expectedFeatures.Features = append(expectedFeatures.Features,
+		Feature{
+			Name:     "dom.flag2",
+			Elements: []FeatureElement{FeatureElement{Name: "k3"}},
+		})
 
 	f2.MergeInto(&f)
 	assert.Equal(t, expectedFeatures, f)
