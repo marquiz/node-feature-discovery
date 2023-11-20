@@ -27,6 +27,8 @@ import (
 	clientset "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned/typed/nfd/v1alpha1"
 	fakenfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned/typed/nfd/v1alpha1/fake"
+	nfdv1alpha2 "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned/typed/nfd/v1alpha2"
+	fakenfdv1alpha2 "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned/typed/nfd/v1alpha2/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
@@ -82,4 +84,9 @@ var (
 // NfdV1alpha1 retrieves the NfdV1alpha1Client
 func (c *Clientset) NfdV1alpha1() nfdv1alpha1.NfdV1alpha1Interface {
 	return &fakenfdv1alpha1.FakeNfdV1alpha1{Fake: &c.Fake}
+}
+
+// NfdV1alpha2 retrieves the NfdV1alpha2Client
+func (c *Clientset) NfdV1alpha2() nfdv1alpha2.NfdV1alpha2Interface {
+	return &fakenfdv1alpha2.FakeNfdV1alpha2{Fake: &c.Fake}
 }

@@ -24,6 +24,7 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 	v1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
+	v1alpha2 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha2"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -59,6 +60,14 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Nfd().V1alpha1().NodeFeatureGroups().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("nodefeaturerules"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Nfd().V1alpha1().NodeFeatureRules().Informer()}, nil
+
+		// Group=nfd.k8s-sigs.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("nodefeatures"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Nfd().V1alpha2().NodeFeatures().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("nodefeaturegroups"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Nfd().V1alpha2().NodeFeatureGroups().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("nodefeaturerules"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Nfd().V1alpha2().NodeFeatureRules().Informer()}, nil
 
 	}
 
