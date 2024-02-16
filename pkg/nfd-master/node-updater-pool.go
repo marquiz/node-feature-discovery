@@ -52,6 +52,7 @@ func (u *nodeUpdaterPool) processNodeUpdateRequest(queue workqueue.RateLimitingI
 	if err := u.nfdMaster.nfdAPIUpdateOneNode(nodeName.(string)); err != nil {
 		if queue.NumRequeues(nodeName) < 15 {
 			klog.InfoS("retrying node update", "nodeName", nodeName, "lastError", err)
+			nodeUpdateRetries.Inc()
 			queue.AddRateLimited(nodeName)
 			return true
 		} else {

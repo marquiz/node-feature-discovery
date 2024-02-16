@@ -25,6 +25,7 @@ import (
 const (
 	buildInfoQuery           = "nfd_master_build_info"
 	nodeUpdateRequestsQuery  = "nfd_node_update_requests_total"
+	nodeUpdateRetriesQuery   = "nfd_node_update_retries_total"
 	nodeUpdatesQuery         = "nfd_node_updates_total"
 	nodeUpdateFailuresQuery  = "nfd_node_update_failures_total"
 	nodeLabelsRejectedQuery  = "nfd_node_labels_rejected_total"
@@ -45,6 +46,10 @@ var (
 	nodeUpdateRequests = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: nodeUpdateRequestsQuery,
 		Help: "Number of node update requests processed by the master.",
+	})
+	nodeUpdateRetries = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: nodeUpdateRetriesQuery,
+		Help: "Number of node update retries.",
 	})
 	nodeUpdates = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: nodeUpdatesQuery,
