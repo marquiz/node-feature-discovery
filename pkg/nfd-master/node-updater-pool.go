@@ -41,7 +41,8 @@ func newNodeUpdaterPool(nfdMaster *nfdMaster) *nodeUpdaterPool {
 }
 
 func (u *nodeUpdaterPool) processNodeUpdateRequest(queue workqueue.RateLimitingInterface) bool {
-	nodeName, quit := queue.Get()
+	n, quit := queue.Get()
+	nodeName := n.(string)
 	if quit {
 		return false
 	}
@@ -49,7 +50,20 @@ func (u *nodeUpdaterPool) processNodeUpdateRequest(queue workqueue.RateLimitingI
 	defer queue.Done(nodeName)
 
 	nodeUpdateRequests.Inc()
-	if err := u.nfdMaster.nfdAPIUpdateOneNode(nodeName.(string)); err != nil {
+
+	// Check the NodeFeature object created by nfd-worker
+	if queue.NumRequeues(nodeName) < 10 {
+		if ok, err := u.nfdMaster.hasWorkerNodeFeature(nodeName); !ok {
+			if err != nil {
+				klog.ErrorS(err, "failed to get default NodeFeature object", "nodeName", nodeName)
+			}
+			klog.InfoS("deferring node update, default NodeFeature object does not exist", "nodeName", nodeName)
+			queue.AddRateLimited(nodeName)
+			return true
+		}
+	}
+
+	if err := u.nfdMaster.nfdAPIUpdateOneNode(nodeName); err != nil {
 		if queue.NumRequeues(nodeName) < 15 {
 			klog.InfoS("retrying node update", "nodeName", nodeName, "lastError", err)
 			nodeUpdateRetries.Inc()

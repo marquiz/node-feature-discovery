@@ -40,6 +40,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/peer"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sLabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -714,6 +715,17 @@ func (m *nfdMaster) nfdAPIUpdateAllNodes() error {
 	}
 
 	return nil
+}
+
+func (m *nfdMaster) hasWorkerNodeFeature(nodeName string) (bool, error) {
+	_, err := m.nfdController.featureLister.NodeFeatures(m.namespace).Get(nodeName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (m *nfdMaster) nfdAPIUpdateOneNode(nodeName string) error {
