@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: NODE_NAME
+  namespace: default
+data:
+  dummy-key: NODE_NAME
