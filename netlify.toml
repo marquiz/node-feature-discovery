@@ -1,5 +1,6 @@
 # Netlify settings
 [build]
-    command = "cd docs/ && which bundle && bundle version && which ruby && ruby --version && bundle plugin install bundler-override && bundle install && jekyll build"
-    publish = "docs/_site/"
+    base = "docs"
+    command = "jekyll build"
+    publish = "_site/"
     environment = { RUBY_VERSION = "3.1.6" }
