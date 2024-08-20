@@ -71,7 +71,9 @@ func newNfdController(config *restclient.Config, nfdApiControllerOptions nfdApiC
 
 	klog.V(2).InfoS("initializing new NFD API controller", "options", utils.DelayedDumper(nfdApiControllerOptions))
 
-	informerFactory := nfdinformers.NewSharedInformerFactory(nfdClient, nfdApiControllerOptions.ResyncPeriod)
+	informerFactory := nfdinformers.NewSharedInformerFactoryWithOptions(nfdClient,
+		nfdApiControllerOptions.ResyncPeriod,
+		nfdinformers.WithTransform(transformObj))
 
 	// Add informer for NodeFeature objects
 	if !nfdApiControllerOptions.DisableNodeFeature {
@@ -187,6 +189,21 @@ func newNfdController(config *restclient.Config, nfdApiControllerOptions nfdApiC
 
 func (c *nfdController) stop() {
 	close(c.stopChan)
+}
+
+func transformObj(obj interface{}) (interface{}, error) {
+	switch o := obj.(type) {
+	case *nfdv1alpha1.NodeFeature:
+		o.ManagedFields = nil
+		obj = o
+	case *nfdv1alpha1.NodeFeatureRule:
+		o.ManagedFields = nil
+		obj = o
+	case *nfdv1alpha1.NodeFeatureGroup:
+		o.ManagedFields = nil
+		obj = o
+	}
+	return obj, nil
 }
 
 func getNodeNameForObj(obj metav1.Object) (string, error) {
