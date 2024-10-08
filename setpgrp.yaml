@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: setpgrp
+  namespace: kube-system
+spec:
+  containers:
+  - name: setpgrp
+    image: python:alpine
+    command:
+    - "python"
+    - "-c"
+    - |
+      import os
+      os.setpgrp()
+    securityContext:
+      privileged: true
+      runAsNonRoot: false
+      allowPrivilegeEscalation: true
+      seccompProfile:
+        type: Unconfined
+      capabilities:
+        add:
+          - SYS_ADMIN
+  restartPolicy: Never
