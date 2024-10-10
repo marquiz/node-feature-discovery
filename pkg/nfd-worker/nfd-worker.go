@@ -47,6 +47,7 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	nfdclient "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned"
+	nfdapi "sigs.k8s.io/node-feature-discovery/api/nfd"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/features"
 	pb "sigs.k8s.io/node-feature-discovery/pkg/labeler"
@@ -679,7 +680,7 @@ func getFeatureLabels(source source.LabelSource, labelWhiteList regexp.Regexp) (
 		default:
 			// Prefix for labels from other sources
 			if !strings.Contains(name, "/") {
-				name = nfdv1alpha1.FeatureLabelNs + "/" + sourceName + "-" + name
+				name = nfdapi.FeatureLabelNs + "/" + sourceName + "-" + name
 			}
 		}
 		// Split label name into namespace and name compoents
@@ -776,8 +777,8 @@ func (m *nfdWorker) updateNodeFeatureObject(labels Labels) error {
 		nfr = &nfdv1alpha1.NodeFeature{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            nodename,
-				Annotations:     map[string]string{nfdv1alpha1.WorkerVersionAnnotation: version.Get()},
-				Labels:          map[string]string{nfdv1alpha1.NodeFeatureObjNodeNameLabel: nodename},
+				Annotations:     map[string]string{nfdapi.WorkerVersionAnnotation: version.Get()},
+				Labels:          map[string]string{nfdapi.NodeFeatureObjNodeNameLabel: nodename},
 				OwnerReferences: m.ownerReference,
 			},
 			Spec: nfdv1alpha1.NodeFeatureSpec{
@@ -797,8 +798,8 @@ func (m *nfdWorker) updateNodeFeatureObject(labels Labels) error {
 		return fmt.Errorf("failed to get NodeFeature object: %w", err)
 	} else {
 		nfrUpdated := nfr.DeepCopy()
-		nfrUpdated.Annotations = map[string]string{nfdv1alpha1.WorkerVersionAnnotation: version.Get()}
-		nfrUpdated.Labels = map[string]string{nfdv1alpha1.NodeFeatureObjNodeNameLabel: nodename}
+		nfrUpdated.Annotations = map[string]string{nfdapi.WorkerVersionAnnotation: version.Get()}
+		nfrUpdated.Labels = map[string]string{nfdapi.NodeFeatureObjNodeNameLabel: nodename}
 		nfrUpdated.OwnerReferences = m.ownerReference
 		nfrUpdated.Spec = nfdv1alpha1.NodeFeatureSpec{
 			Features: *features,

@@ -26,6 +26,7 @@ import (
 
 	nfdclientset "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned"
 	nfdinformers "sigs.k8s.io/node-feature-discovery/api/generated/informers/externalversions"
+	nfdapi "sigs.k8s.io/node-feature-discovery/api/nfd"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
 
 	"sigs.k8s.io/yaml"
@@ -49,7 +50,7 @@ func Test(nodefeaturerulepath, nodeName, kubeconfig string) []error {
 	informerFactory := nfdinformers.NewSharedInformerFactory(nfdClient, 1*time.Second)
 	featureLister := informerFactory.Nfd().V1alpha1().NodeFeatures().Lister()
 
-	sel := k8sLabels.SelectorFromSet(k8sLabels.Set{nfdv1alpha1.NodeFeatureObjNodeNameLabel: nodeName})
+	sel := k8sLabels.SelectorFromSet(k8sLabels.Set{nfdapi.NodeFeatureObjNodeNameLabel: nodeName})
 	objs, err := featureLister.List(sel)
 	if err != nil {
 		return []error{fmt.Errorf("failed to get NodeFeature resources for node %q: %w", nodeName, err)}

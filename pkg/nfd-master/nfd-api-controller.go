@@ -31,6 +31,7 @@ import (
 	nfdinformers "sigs.k8s.io/node-feature-discovery/api/generated/informers/externalversions"
 	nfdinformersv1alpha1 "sigs.k8s.io/node-feature-discovery/api/generated/informers/externalversions/nfd/v1alpha1"
 	nfdlisters "sigs.k8s.io/node-feature-discovery/api/generated/listers/nfd/v1alpha1"
+	nfdapi "sigs.k8s.io/node-feature-discovery/api/nfd"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 )
@@ -190,12 +191,12 @@ func (c *nfdController) stop() {
 }
 
 func getNodeNameForObj(obj metav1.Object) (string, error) {
-	nodeName, ok := obj.GetLabels()[nfdv1alpha1.NodeFeatureObjNodeNameLabel]
+	nodeName, ok := obj.GetLabels()[nfdapi.NodeFeatureObjNodeNameLabel]
 	if !ok {
-		return "", fmt.Errorf("%q label is missing", nfdv1alpha1.NodeFeatureObjNodeNameLabel)
+		return "", fmt.Errorf("%q label is missing", nfdapi.NodeFeatureObjNodeNameLabel)
 	}
 	if nodeName == "" {
-		return "", fmt.Errorf("%q label is empty", nfdv1alpha1.NodeFeatureObjNodeNameLabel)
+		return "", fmt.Errorf("%q label is empty", nfdapi.NodeFeatureObjNodeNameLabel)
 	}
 	return nodeName, nil
 }

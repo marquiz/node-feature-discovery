@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	nfdapi "sigs.k8s.io/node-feature-discovery/api/nfd"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
 )
 
@@ -32,12 +33,12 @@ func TestGetNodeNameForObj(t *testing.T) {
 	assert.Error(t, err)
 
 	// Test empty label
-	obj.SetLabels(map[string]string{nfdv1alpha1.NodeFeatureObjNodeNameLabel: ""})
+	obj.SetLabels(map[string]string{nfdapi.NodeFeatureObjNodeNameLabel: ""})
 	_, err = getNodeNameForObj(obj)
 	assert.Error(t, err)
 
 	// Test proper node name
-	obj.SetLabels(map[string]string{nfdv1alpha1.NodeFeatureObjNodeNameLabel: "node-1"})
+	obj.SetLabels(map[string]string{nfdapi.NodeFeatureObjNodeNameLabel: "node-1"})
 	n, err := getNodeNameForObj(obj)
 	assert.Nil(t, err)
 	assert.Equal(t, n, "node-1")

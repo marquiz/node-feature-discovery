@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
+	nfdapi "sigs.k8s.io/node-feature-discovery/api/nfd"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils"
 	"sigs.k8s.io/node-feature-discovery/pkg/version"
@@ -129,7 +130,7 @@ func (n *nfdGarbageCollector) deleteNodeHandler(object interface{}) {
 	n.deleteNRT(nodeName)
 
 	// Delete all NodeFeature objects (from all namespaces) targeting the deleted node
-	nfListOptions := metav1.ListOptions{LabelSelector: nfdv1alpha1.NodeFeatureObjNodeNameLabel + "=" + nodeName}
+	nfListOptions := metav1.ListOptions{LabelSelector: nfdapi.NodeFeatureObjNodeNameLabel + "=" + nodeName}
 	if nfs, err := n.client.Resource(gvrNF).List(context.TODO(), nfListOptions); err != nil {
 		klog.ErrorS(err, "failed to list NodeFeature objects")
 	} else {
@@ -179,7 +180,7 @@ func (n *nfdGarbageCollector) garbageCollect() {
 
 	// Handle NodeFeature objects
 	listAndHandle(gvrNF, func(meta metav1.PartialObjectMetadata) {
-		nodeName, ok := meta.GetLabels()[nfdv1alpha1.NodeFeatureObjNodeNameLabel]
+		nodeName, ok := meta.GetLabels()[nfdapi.NodeFeatureObjNodeNameLabel]
 		if !ok {
 			klog.InfoS("node name label missing from NodeFeature object", "nodefeature", klog.KObj(&meta))
 		}

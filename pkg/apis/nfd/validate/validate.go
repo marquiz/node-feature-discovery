@@ -25,6 +25,7 @@ import (
 	k8sQuantity "k8s.io/apimachinery/pkg/api/resource"
 	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 
+	nfdapi "sigs.k8s.io/node-feature-discovery/api/nfd"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
 )
 
@@ -107,8 +108,8 @@ func Label(key, value string) error {
 	// And is not a denied namespace
 	if ns == "kubernetes.io" || strings.HasSuffix(ns, ".kubernetes.io") {
 		// And is not a default namespace
-		if ns != nfdv1alpha1.FeatureLabelNs && ns != nfdv1alpha1.ProfileLabelNs &&
-			!strings.HasSuffix(ns, nfdv1alpha1.FeatureLabelSubNsSuffix) && !strings.HasSuffix(ns, nfdv1alpha1.ProfileLabelSubNsSuffix) {
+		if ns != nfdapi.FeatureLabelNs && ns != nfdapi.ProfileLabelNs &&
+			!strings.HasSuffix(ns, nfdapi.FeatureLabelSubNsSuffix) && !strings.HasSuffix(ns, nfdapi.ProfileLabelSubNsSuffix) {
 			return ErrNSNotAllowed
 		}
 	}
@@ -149,14 +150,14 @@ func Annotation(key, value string) error {
 	// And is not a denied namespace
 	if ns == "kubernetes.io" || strings.HasSuffix(ns, ".kubernetes.io") {
 		// And is not a default namespace
-		if ns != nfdv1alpha1.FeatureAnnotationNs && !strings.HasSuffix(ns, nfdv1alpha1.FeatureAnnotationSubNsSuffix) {
+		if ns != nfdapi.FeatureAnnotationNs && !strings.HasSuffix(ns, nfdapi.FeatureAnnotationSubNsSuffix) {
 			return ErrNSNotAllowed
 		}
 	}
 
 	// Validate annotation value
-	if len(value) > nfdv1alpha1.FeatureAnnotationValueSizeLimit {
-		return fmt.Errorf("invalid value: too long: feature annotations must not be longer than %d characters", nfdv1alpha1.FeatureAnnotationValueSizeLimit)
+	if len(value) > nfdapi.FeatureAnnotationValueSizeLimit {
+		return fmt.Errorf("invalid value: too long: feature annotations must not be longer than %d characters", nfdapi.FeatureAnnotationValueSizeLimit)
 	}
 
 	return nil
@@ -185,7 +186,7 @@ func Taint(taint *corev1.Taint) error {
 	// And is not a denied namespace
 	if ns == "kubernetes.io" || strings.HasSuffix(ns, ".kubernetes.io") {
 		// And is not a default namespace
-		if ns != nfdv1alpha1.TaintNs && !strings.HasSuffix(ns, nfdv1alpha1.TaintSubNsSuffix) {
+		if ns != nfdapi.TaintNs && !strings.HasSuffix(ns, nfdapi.TaintSubNsSuffix) {
 			return ErrNSNotAllowed
 		}
 	}
@@ -231,7 +232,7 @@ func ExtendedResource(key, value string) error {
 	// And is not a denied namespace
 	if ns == "kubernetes.io" || strings.HasSuffix(ns, ".kubernetes.io") {
 		// And is not a default namespace
-		if ns != nfdv1alpha1.ExtendedResourceNs && !strings.HasSuffix(ns, nfdv1alpha1.ExtendedResourceSubNsSuffix) {
+		if ns != nfdapi.ExtendedResourceNs && !strings.HasSuffix(ns, nfdapi.ExtendedResourceSubNsSuffix) {
 			return ErrNSNotAllowed
 		}
 	}

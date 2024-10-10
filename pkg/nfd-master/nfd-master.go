@@ -57,6 +57,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	nfdclientset "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned"
+	nfdapi "sigs.k8s.io/node-feature-discovery/api/nfd"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/nodefeaturerule"
 	"sigs.k8s.io/node-feature-discovery/pkg/apis/nfd/validate"
@@ -560,7 +561,7 @@ func (m *nfdMaster) prune() error {
 			return err
 		}
 		maps.DeleteFunc(node.Annotations, func(k, v string) bool {
-			return strings.HasPrefix(k, m.instanceAnnotation(nfdv1alpha1.AnnotationNs))
+			return strings.HasPrefix(k, m.instanceAnnotation(nfdapi.AnnotationNs))
 		})
 		_, err = m.k8sClient.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
 		if err != nil {
@@ -573,7 +574,7 @@ func (m *nfdMaster) prune() error {
 // Update annotations on the node where nfd-master is running. Currently the
 // only function is to remove the deprecated
 // "nfd.node.kubernetes.io/master.version" annotation, if it exists.
-// TODO: Drop when nfdv1alpha1.MasterVersionAnnotation is removed.
+// TODO: Drop when nfdapi.MasterVersionAnnotation is removed.
 func (m *nfdMaster) updateMasterNode() error {
 	node, err := getNode(m.k8sClient, m.nodeName)
 	if err != nil {
@@ -581,7 +582,7 @@ func (m *nfdMaster) updateMasterNode() error {
 	}
 
 	// Advertise NFD version as an annotation
-	p := createPatches([]string{m.instanceAnnotation(nfdv1alpha1.MasterVersionAnnotation)},
+	p := createPatches([]string{m.instanceAnnotation(nfdapi.MasterVersionAnnotation)},
 		node.Annotations,
 		nil,
 		"/metadata/annotations")
@@ -612,7 +613,7 @@ func (m *nfdMaster) filterFeatureLabels(labels Labels, features *nfdv1alpha1.Fea
 	// Remove labels which are intended to be extended resources
 	extendedResources := ExtendedResources{}
 	for extendedResourceName := range m.config.ResourceLabels {
-		extendedResourceName := addNs(extendedResourceName, nfdv1alpha1.FeatureLabelNs)
+		extendedResourceName := addNs(extendedResourceName, nfdapi.FeatureLabelNs)
 		if value, ok := outLabels[extendedResourceName]; ok {
 			if _, err := strconv.Atoi(value); err != nil {
 				klog.ErrorS(err, "bad label value encountered for extended resource", "labelKey", extendedResourceName, "labelValue", value)
@@ -775,7 +776,7 @@ func (m *nfdMaster) getAndMergeNodeFeatures(nodeName string) (*nfdv1alpha1.NodeF
 		},
 	}
 
-	sel := k8sLabels.SelectorFromSet(k8sLabels.Set{nfdv1alpha1.NodeFeatureObjNodeNameLabel: nodeName})
+	sel := k8sLabels.SelectorFromSet(k8sLabels.Set{nfdapi.NodeFeatureObjNodeNameLabel: nodeName})
 	objs, err := m.nfdController.featureLister.List(sel)
 	if err != nil {
 		return &nfdv1alpha1.NodeFeature{}, fmt.Errorf("failed to get NodeFeature resources for node %q: %w", nodeName, err)
@@ -810,12 +811,12 @@ func (m *nfdMaster) getAndMergeNodeFeatures(nodeName string) (*nfdv1alpha1.NodeF
 		// of merging would probably perform better with lot less data to copy.
 		features := objs[0].Spec.DeepCopy()
 		if !nfdfeatures.NFDFeatureGate.Enabled(nfdfeatures.DisableAutoPrefix) && m.config.AutoDefaultNs {
-			features.Labels = addNsToMapKeys(features.Labels, nfdv1alpha1.FeatureLabelNs)
+			features.Labels = addNsToMapKeys(features.Labels, nfdapi.FeatureLabelNs)
 		}
 		for _, o := range objs[1:] {
 			s := o.Spec.DeepCopy()
 			if !nfdfeatures.NFDFeatureGate.Enabled(nfdfeatures.DisableAutoPrefix) && m.config.AutoDefaultNs {
-				s.Labels = addNsToMapKeys(s.Labels, nfdv1alpha1.FeatureLabelNs)
+				s.Labels = addNsToMapKeys(s.Labels, nfdapi.FeatureLabelNs)
 			}
 			s.MergeInto(features)
 		}
@@ -977,7 +978,7 @@ func filterExtendedResource(name, value string, features *nfdv1alpha1.Features) 
 
 func (m *nfdMaster) refreshNodeFeatures(cli k8sclient.Interface, node *corev1.Node, labels map[string]string, features *nfdv1alpha1.Features) error {
 	if !nfdfeatures.NFDFeatureGate.Enabled(nfdfeatures.DisableAutoPrefix) && m.config.AutoDefaultNs {
-		labels = addNsToMapKeys(labels, nfdv1alpha1.FeatureLabelNs)
+		labels = addNsToMapKeys(labels, nfdapi.FeatureLabelNs)
 	} else if labels == nil {
 		labels = make(map[string]string)
 	}
@@ -1025,7 +1026,7 @@ func setTaints(cli k8sclient.Interface, taints []corev1.Taint, node *corev1.Node
 	// De-serialize the taints annotation into corev1.Taint type for comparison below.
 	var err error
 	oldTaints := []corev1.Taint{}
-	if val, ok := node.Annotations[nfdv1alpha1.NodeTaintsAnnotation]; ok {
+	if val, ok := node.Annotations[nfdapi.NodeTaintsAnnotation]; ok {
 		sts := strings.Split(val, ",")
 		oldTaints, _, err = taintutils.ParseTaints(sts)
 		if err != nil {
@@ -1075,10 +1076,10 @@ func setTaints(cli k8sclient.Interface, taints []corev1.Taint, node *corev1.Node
 		for _, taint := range taints {
 			taintStrs = append(taintStrs, taint.ToString())
 		}
-		newAnnotations[nfdv1alpha1.NodeTaintsAnnotation] = strings.Join(taintStrs, ",")
+		newAnnotations[nfdapi.NodeTaintsAnnotation] = strings.Join(taintStrs, ",")
 	}
 
-	patches := createPatches([]string{nfdv1alpha1.NodeTaintsAnnotation}, node.Annotations, newAnnotations, "/metadata/annotations")
+	patches := createPatches([]string{nfdapi.NodeTaintsAnnotation}, node.Annotations, newAnnotations, "/metadata/annotations")
 	if len(patches) > 0 {
 		if err := patchNode(cli, node.Name, patches); err != nil {
 			return fmt.Errorf("error while patching node object: %w", err)
@@ -1154,9 +1155,9 @@ func (m *nfdMaster) processNodeFeatureRule(nodeName string, features *nfdv1alpha
 			e := ruleOut.ExtendedResources
 			a := ruleOut.Annotations
 			if !nfdfeatures.NFDFeatureGate.Enabled(nfdfeatures.DisableAutoPrefix) && m.config.AutoDefaultNs {
-				l = addNsToMapKeys(ruleOut.Labels, nfdv1alpha1.FeatureLabelNs)
-				e = addNsToMapKeys(ruleOut.ExtendedResources, nfdv1alpha1.ExtendedResourceNs)
-				a = addNsToMapKeys(ruleOut.Annotations, nfdv1alpha1.FeatureAnnotationNs)
+				l = addNsToMapKeys(ruleOut.Labels, nfdapi.FeatureLabelNs)
+				e = addNsToMapKeys(ruleOut.ExtendedResources, nfdapi.ExtendedResourceNs)
+				a = addNsToMapKeys(ruleOut.Annotations, nfdapi.FeatureAnnotationNs)
 			}
 			maps.Copy(labels, l)
 			maps.Copy(extendedResources, e)
@@ -1185,10 +1186,10 @@ func (m *nfdMaster) updateNodeObject(cli k8sclient.Interface, node *corev1.Node,
 		labelKeys := make([]string, 0, len(labels))
 		for key := range labels {
 			// Drop the ns part for labels in the default ns
-			labelKeys = append(labelKeys, strings.TrimPrefix(key, nfdv1alpha1.FeatureLabelNs+"/"))
+			labelKeys = append(labelKeys, strings.TrimPrefix(key, nfdapi.FeatureLabelNs+"/"))
 		}
 		sort.Strings(labelKeys)
-		annotations[m.instanceAnnotation(nfdv1alpha1.FeatureLabelsAnnotation)] = strings.Join(labelKeys, ",")
+		annotations[m.instanceAnnotation(nfdapi.FeatureLabelsAnnotation)] = strings.Join(labelKeys, ",")
 	}
 
 	// Store names of extended resources in an annotation
@@ -1196,10 +1197,10 @@ func (m *nfdMaster) updateNodeObject(cli k8sclient.Interface, node *corev1.Node,
 		extendedResourceKeys := make([]string, 0, len(extendedResources))
 		for key := range extendedResources {
 			// Drop the ns part if in the default ns
-			extendedResourceKeys = append(extendedResourceKeys, strings.TrimPrefix(key, nfdv1alpha1.FeatureLabelNs+"/"))
+			extendedResourceKeys = append(extendedResourceKeys, strings.TrimPrefix(key, nfdapi.FeatureLabelNs+"/"))
 		}
 		sort.Strings(extendedResourceKeys)
-		annotations[m.instanceAnnotation(nfdv1alpha1.ExtendedResourceAnnotation)] = strings.Join(extendedResourceKeys, ",")
+		annotations[m.instanceAnnotation(nfdapi.ExtendedResourceAnnotation)] = strings.Join(extendedResourceKeys, ",")
 	}
 
 	// Store feature annotations
@@ -1208,24 +1209,24 @@ func (m *nfdMaster) updateNodeObject(cli k8sclient.Interface, node *corev1.Node,
 		annotationKeys := make([]string, 0, len(featureAnnotations))
 		for key := range featureAnnotations {
 			// Drop the ns part for annotations in the default ns
-			annotationKeys = append(annotationKeys, strings.TrimPrefix(key, nfdv1alpha1.FeatureAnnotationNs+"/"))
+			annotationKeys = append(annotationKeys, strings.TrimPrefix(key, nfdapi.FeatureAnnotationNs+"/"))
 		}
 		sort.Strings(annotationKeys)
-		annotations[m.instanceAnnotation(nfdv1alpha1.FeatureAnnotationsTrackingAnnotation)] = strings.Join(annotationKeys, ",")
+		annotations[m.instanceAnnotation(nfdapi.FeatureAnnotationsTrackingAnnotation)] = strings.Join(annotationKeys, ",")
 		maps.Copy(annotations, featureAnnotations)
 	}
 
 	// Create JSON patches for changes in labels and annotations
-	oldLabels := stringToNsNames(node.Annotations[m.instanceAnnotation(nfdv1alpha1.FeatureLabelsAnnotation)], nfdv1alpha1.FeatureLabelNs)
-	oldAnnotations := stringToNsNames(node.Annotations[m.instanceAnnotation(nfdv1alpha1.FeatureAnnotationsTrackingAnnotation)], nfdv1alpha1.FeatureAnnotationNs)
+	oldLabels := stringToNsNames(node.Annotations[m.instanceAnnotation(nfdapi.FeatureLabelsAnnotation)], nfdapi.FeatureLabelNs)
+	oldAnnotations := stringToNsNames(node.Annotations[m.instanceAnnotation(nfdapi.FeatureAnnotationsTrackingAnnotation)], nfdapi.FeatureAnnotationNs)
 	patches := createPatches(oldLabels, node.Labels, labels, "/metadata/labels")
 	oldAnnotations = append(oldAnnotations, []string{
-		m.instanceAnnotation(nfdv1alpha1.FeatureLabelsAnnotation),
-		m.instanceAnnotation(nfdv1alpha1.ExtendedResourceAnnotation),
-		m.instanceAnnotation(nfdv1alpha1.FeatureAnnotationsTrackingAnnotation),
+		m.instanceAnnotation(nfdapi.FeatureLabelsAnnotation),
+		m.instanceAnnotation(nfdapi.ExtendedResourceAnnotation),
+		m.instanceAnnotation(nfdapi.FeatureAnnotationsTrackingAnnotation),
 		// Clean up deprecated/stale nfd version annotations
-		m.instanceAnnotation(nfdv1alpha1.MasterVersionAnnotation),
-		m.instanceAnnotation(nfdv1alpha1.WorkerVersionAnnotation)}...)
+		m.instanceAnnotation(nfdapi.MasterVersionAnnotation),
+		m.instanceAnnotation(nfdapi.WorkerVersionAnnotation)}...)
 	patches = append(patches, createPatches(oldAnnotations, node.Annotations, annotations, "/metadata/annotations")...)
 
 	// patch node status with extended resource changes
@@ -1290,7 +1291,7 @@ func (m *nfdMaster) createExtendedResourcePatches(n *corev1.Node, extendedResour
 	patches := []utils.JsonPatch{}
 
 	// Form a list of namespaced resource names managed by us
-	oldResources := stringToNsNames(n.Annotations[m.instanceAnnotation(nfdv1alpha1.ExtendedResourceAnnotation)], nfdv1alpha1.FeatureLabelNs)
+	oldResources := stringToNsNames(n.Annotations[m.instanceAnnotation(nfdapi.ExtendedResourceAnnotation)], nfdapi.FeatureLabelNs)
 
 	// figure out which resources to remove
 	for _, resource := range oldResources {

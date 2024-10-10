@@ -42,6 +42,7 @@ import (
 	fakenfdclient "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned/fake"
 	nfdscheme "sigs.k8s.io/node-feature-discovery/api/generated/clientset/versioned/scheme"
 	nfdinformers "sigs.k8s.io/node-feature-discovery/api/generated/informers/externalversions"
+	nfdapi "sigs.k8s.io/node-feature-discovery/api/nfd"
 	nfdv1alpha1 "sigs.k8s.io/node-feature-discovery/api/nfd/v1alpha1"
 	"sigs.k8s.io/node-feature-discovery/pkg/features"
 	"sigs.k8s.io/node-feature-discovery/pkg/labeler"
@@ -124,41 +125,41 @@ func newFakeMaster(opts ...NfdMasterOption) *nfdMaster {
 func TestUpdateNodeObject(t *testing.T) {
 	Convey("When I update the node using fake client", t, func() {
 		featureLabels := map[string]string{
-			nfdv1alpha1.FeatureLabelNs + "/source-feature.1": "1",
-			nfdv1alpha1.FeatureLabelNs + "/source-feature.2": "2",
-			nfdv1alpha1.FeatureLabelNs + "/source-feature.3": "val3",
-			nfdv1alpha1.ProfileLabelNs + "/profile-a":        "val4",
+			nfdapi.FeatureLabelNs + "/source-feature.1": "1",
+			nfdapi.FeatureLabelNs + "/source-feature.2": "2",
+			nfdapi.FeatureLabelNs + "/source-feature.3": "val3",
+			nfdapi.ProfileLabelNs + "/profile-a":        "val4",
 		}
 		featureAnnotations := map[string]string{
 			"feature.node.kubernetesl.io/my-annotation": "my-val",
 		}
 		featureExtResources := map[string]string{
-			nfdv1alpha1.FeatureLabelNs + "/source-feature.1": "1",
-			nfdv1alpha1.FeatureLabelNs + "/source-feature.2": "2",
+			nfdapi.FeatureLabelNs + "/source-feature.1": "1",
+			nfdapi.FeatureLabelNs + "/source-feature.2": "2",
 		}
 
 		featureLabelNames := make([]string, 0, len(featureLabels))
 		for k := range featureLabels {
-			featureLabelNames = append(featureLabelNames, strings.TrimPrefix(k, nfdv1alpha1.FeatureLabelNs+"/"))
+			featureLabelNames = append(featureLabelNames, strings.TrimPrefix(k, nfdapi.FeatureLabelNs+"/"))
 		}
 		sort.Strings(featureLabelNames)
 
 		featureAnnotationNames := make([]string, 0, len(featureLabels))
 		for k := range featureAnnotations {
-			featureAnnotationNames = append(featureAnnotationNames, strings.TrimPrefix(k, nfdv1alpha1.FeatureAnnotationNs+"/"))
+			featureAnnotationNames = append(featureAnnotationNames, strings.TrimPrefix(k, nfdapi.FeatureAnnotationNs+"/"))
 		}
 		sort.Strings(featureAnnotationNames)
 
 		featureExtResourceNames := make([]string, 0, len(featureExtResources))
 		for k := range featureExtResources {
-			featureExtResourceNames = append(featureExtResourceNames, strings.TrimPrefix(k, nfdv1alpha1.FeatureLabelNs+"/"))
+			featureExtResourceNames = append(featureExtResourceNames, strings.TrimPrefix(k, nfdapi.FeatureLabelNs+"/"))
 		}
 		sort.Strings(featureExtResourceNames)
 
 		// Create a node with some existing features
 		testNode := newTestNode()
-		testNode.Labels[nfdv1alpha1.FeatureLabelNs+"/old-feature"] = "old-value"
-		testNode.Annotations[nfdv1alpha1.AnnotationNs+"/feature-labels"] = "old-feature"
+		testNode.Labels[nfdapi.FeatureLabelNs+"/old-feature"] = "old-value"
+		testNode.Annotations[nfdapi.AnnotationNs+"/feature-labels"] = "old-feature"
 
 		// Create fake api client and initialize NfdMaster instance
 		fakeCli := fakeclient.NewSimpleClientset(testNode)
@@ -172,9 +173,9 @@ func TestUpdateNodeObject(t *testing.T) {
 
 			Convey("Node object is updated", func() {
 				expectedAnnotations := map[string]string{
-					nfdv1alpha1.FeatureLabelsAnnotation:              strings.Join(featureLabelNames, ","),
-					nfdv1alpha1.FeatureAnnotationsTrackingAnnotation: strings.Join(featureAnnotationNames, ","),
-					nfdv1alpha1.ExtendedResourceAnnotation:           strings.Join(featureExtResourceNames, ","),
+					nfdapi.FeatureLabelsAnnotation:              strings.Join(featureLabelNames, ","),
+					nfdapi.FeatureAnnotationsTrackingAnnotation: strings.Join(featureAnnotationNames, ","),
+					nfdapi.ExtendedResourceAnnotation:           strings.Join(featureExtResourceNames, ","),
 				}
 				maps.Copy(expectedAnnotations, featureAnnotations)
 
@@ -277,8 +278,8 @@ func TestAddingExtResources(t *testing.T) {
 
 		Convey("When the resource already exists", func() {
 			testNode := newTestNode()
-			testNode.Status.Capacity[corev1.ResourceName(nfdv1alpha1.FeatureLabelNs+"/feature-1")] = *resource.NewQuantity(1, resource.BinarySI)
-			resourceLabels := ExtendedResources{nfdv1alpha1.FeatureLabelNs + "/feature-1": "1"}
+			testNode.Status.Capacity[corev1.ResourceName(nfdapi.FeatureLabelNs+"/feature-1")] = *resource.NewQuantity(1, resource.BinarySI)
+			resourceLabels := ExtendedResources{nfdapi.FeatureLabelNs + "/feature-1": "1"}
 			patches := fakeMaster.createExtendedResourcePatches(testNode, resourceLabels)
 			So(len(patches), ShouldEqual, 0)
 		})
@@ -302,28 +303,28 @@ func TestRemovingExtResources(t *testing.T) {
 		fakeMaster := newFakeMaster()
 		Convey("When none are removed", func() {
 			testNode := newTestNode()
-			resourceLabels := ExtendedResources{nfdv1alpha1.FeatureLabelNs + "/feature-1": "1", nfdv1alpha1.FeatureLabelNs + "/feature-2": "2"}
-			testNode.Annotations[nfdv1alpha1.AnnotationNs+"/extended-resources"] = "feature-1,feature-2"
-			testNode.Status.Capacity[corev1.ResourceName(nfdv1alpha1.FeatureLabelNs+"/feature-1")] = *resource.NewQuantity(1, resource.BinarySI)
-			testNode.Status.Capacity[corev1.ResourceName(nfdv1alpha1.FeatureLabelNs+"/feature-2")] = *resource.NewQuantity(2, resource.BinarySI)
+			resourceLabels := ExtendedResources{nfdapi.FeatureLabelNs + "/feature-1": "1", nfdapi.FeatureLabelNs + "/feature-2": "2"}
+			testNode.Annotations[nfdapi.AnnotationNs+"/extended-resources"] = "feature-1,feature-2"
+			testNode.Status.Capacity[corev1.ResourceName(nfdapi.FeatureLabelNs+"/feature-1")] = *resource.NewQuantity(1, resource.BinarySI)
+			testNode.Status.Capacity[corev1.ResourceName(nfdapi.FeatureLabelNs+"/feature-2")] = *resource.NewQuantity(2, resource.BinarySI)
 			patches := fakeMaster.createExtendedResourcePatches(testNode, resourceLabels)
 			So(len(patches), ShouldEqual, 0)
 		})
 		Convey("When the related label is gone", func() {
 			testNode := newTestNode()
-			resourceLabels := ExtendedResources{nfdv1alpha1.FeatureLabelNs + "/feature-4": "", nfdv1alpha1.FeatureLabelNs + "/feature-2": "2"}
-			testNode.Annotations[nfdv1alpha1.AnnotationNs+"/extended-resources"] = "feature-4,feature-2"
-			testNode.Status.Capacity[corev1.ResourceName(nfdv1alpha1.FeatureLabelNs+"/feature-4")] = *resource.NewQuantity(4, resource.BinarySI)
-			testNode.Status.Capacity[corev1.ResourceName(nfdv1alpha1.FeatureLabelNs+"/feature-2")] = *resource.NewQuantity(2, resource.BinarySI)
+			resourceLabels := ExtendedResources{nfdapi.FeatureLabelNs + "/feature-4": "", nfdapi.FeatureLabelNs + "/feature-2": "2"}
+			testNode.Annotations[nfdapi.AnnotationNs+"/extended-resources"] = "feature-4,feature-2"
+			testNode.Status.Capacity[corev1.ResourceName(nfdapi.FeatureLabelNs+"/feature-4")] = *resource.NewQuantity(4, resource.BinarySI)
+			testNode.Status.Capacity[corev1.ResourceName(nfdapi.FeatureLabelNs+"/feature-2")] = *resource.NewQuantity(2, resource.BinarySI)
 			patches := fakeMaster.createExtendedResourcePatches(testNode, resourceLabels)
 			So(len(patches), ShouldBeGreaterThan, 0)
 		})
 		Convey("When the extended resource is no longer wanted", func() {
 			testNode := newTestNode()
-			testNode.Status.Capacity[corev1.ResourceName(nfdv1alpha1.FeatureLabelNs+"/feature-1")] = *resource.NewQuantity(1, resource.BinarySI)
-			testNode.Status.Capacity[corev1.ResourceName(nfdv1alpha1.FeatureLabelNs+"/feature-2")] = *resource.NewQuantity(2, resource.BinarySI)
-			resourceLabels := ExtendedResources{nfdv1alpha1.FeatureLabelNs + "/feature-2": "2"}
-			testNode.Annotations[nfdv1alpha1.AnnotationNs+"/extended-resources"] = "feature-1,feature-2"
+			testNode.Status.Capacity[corev1.ResourceName(nfdapi.FeatureLabelNs+"/feature-1")] = *resource.NewQuantity(1, resource.BinarySI)
+			testNode.Status.Capacity[corev1.ResourceName(nfdapi.FeatureLabelNs+"/feature-2")] = *resource.NewQuantity(2, resource.BinarySI)
+			resourceLabels := ExtendedResources{nfdapi.FeatureLabelNs + "/feature-2": "2"}
+			testNode.Annotations[nfdapi.AnnotationNs+"/extended-resources"] = "feature-1,feature-2"
 			patches := fakeMaster.createExtendedResourcePatches(testNode, resourceLabels)
 			So(len(patches), ShouldBeGreaterThan, 0)
 		})
@@ -339,7 +340,7 @@ func TestSetLabels(t *testing.T) {
 		testNode := newTestNode()
 		// We need to populate the node with some annotations or the patching in the fake client fails
 		testNode.Labels["feature.node.kubernetes.io/foo"] = "bar"
-		testNode.Annotations[nfdv1alpha1.FeatureLabelsAnnotation] = "foo"
+		testNode.Annotations[nfdapi.FeatureLabelsAnnotation] = "foo"
 
 		ctx := context.Background()
 		// In the gRPC request the label names may omit the default ns
