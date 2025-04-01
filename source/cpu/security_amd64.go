@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/klauspost/cpuid/v2"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/node-feature-discovery/pkg/utils/hostpath"
 )
@@ -158,7 +159,11 @@ func getCgroupMiscCapacity(resource string) int64 {
 		miscCgroups := hostpath.SysfsDir.Path(miscCgroupsPath)
 		f, err := os.Open(miscCgroups)
 		if err == nil {
-			defer f.Close()
+			defer func() {
+				if err := f.Close(); err != nil {
+					klog.ErrorS(err, "Failed to close file", "file", miscCgroups)
+				}
+			}()
 
 			return retrieveCgroupMiscCapacityValue(f, resource)
 		}

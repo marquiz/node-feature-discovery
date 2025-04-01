@@ -557,7 +557,9 @@ func TestConfigParse(t *testing.T) {
 		})
 		// Create a temporary config file
 		f, err := os.CreateTemp("", "nfd-test-")
-		defer os.Remove(f.Name())
+		defer func() {
+			SoMsg(fmt.Sprintf("failed to remove temporary file %s", f.Name()), os.Remove(f.Name()), ShouldBeNil)
+		}()
 		So(err, ShouldBeNil)
 		_, err = f.WriteString(`
 noPublish: true
@@ -569,8 +571,8 @@ leaderElection:
   renewDeadline: 4s
   retryPeriod: 30s
 `)
-		f.Close()
 		So(err, ShouldBeNil)
+		So(f.Close(), ShouldBeNil)
 
 		Convey("and a proper config file is specified", func() {
 			master.args = Args{Overrides: ConfigOverrideArgs{ExtraLabelNs: &utils.StringSetVal{"override.added.ns.io": struct{}{}}}}

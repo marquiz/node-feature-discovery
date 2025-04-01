@@ -49,6 +49,8 @@ func (s *MetricsServer) Run() {
 func (s *MetricsServer) Stop() {
 	if s.srv != nil {
 		klog.InfoS("stopping metrics server", "port", s.srv.Addr)
-		s.srv.Close()
+		if err := s.srv.Close(); err != nil {
+			klog.ErrorS(err, "failed to stop metrics server")
+		}
 	}
 }

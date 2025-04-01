@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/node-feature-discovery/pkg/utils/hostpath"
 )
 
@@ -35,14 +36,22 @@ func readKconfigGzip(filename string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			klog.ErrorS(err, "Failed to close file", "file", f.Name())
+		}
+	}()
 
 	// Uncompress data
 	r, err := gzip.NewReader(f)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer func() {
+		if err := r.Close(); err != nil {
+			klog.ErrorS(err, "Failed to close gzip reader")
+		}
+	}()
 
 	return io.ReadAll(r)
 }
@@ -83,7 +92,7 @@ func parseKconfig(configPath string) (realKconfig, legacyKconfig map[string]stri
 
 	for _, path := range append([]string{configPath}, searchPaths...) {
 		if len(path) > 0 {
-			if ".gz" == filepath.Ext(path) {
+			if filepath.Ext(path) == ".gz" {
 				if raw, err = readKconfigGzip(path); err == nil {
 					break
 				}

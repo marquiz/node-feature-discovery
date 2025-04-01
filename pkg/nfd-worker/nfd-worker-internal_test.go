@@ -17,6 +17,7 @@ limitations under the License.
 package nfdworker
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -129,7 +130,9 @@ func TestConfigParse(t *testing.T) {
 		})
 		// Create a temporary config file
 		f, err := os.CreateTemp("", "nfd-test-")
-		defer os.Remove(f.Name())
+		defer func() {
+			SoMsg(fmt.Sprintf("failed to remove temporary file %s", f.Name()), os.Remove(f.Name()), ShouldBeNil)
+		}()
 		So(err, ShouldBeNil)
 		_, err = f.WriteString(`
 core:
@@ -145,8 +148,8 @@ sources:
   pci:
     deviceClassWhitelist:
       - "ff"`)
-		f.Close()
 		So(err, ShouldBeNil)
+		So(f.Close(), ShouldBeNil)
 
 		Convey("and a proper config file is specified", func() {
 			worker.args = Args{Overrides: ConfigOverrideArgs{LabelSources: &utils.StringSliceVal{"cpu", "kernel", "pci"}}}

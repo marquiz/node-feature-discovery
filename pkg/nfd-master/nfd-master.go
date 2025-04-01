@@ -37,8 +37,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	k8sLabels "k8s.io/apimachinery/pkg/labels"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8sclient "k8s.io/client-go/kubernetes"
@@ -148,8 +147,8 @@ type nfdMaster struct {
 	k8sClient      k8sclient.Interface
 	nfdClient      nfdclientset.Interface
 	updaterPool    *updaterPool
-	deniedNs
-	config *NFDConfig
+	deniedNs       deniedNs
+	config         *NFDConfig
 }
 
 // NewNfdMaster creates a new NfdMaster server instance.
@@ -323,7 +322,7 @@ func (m *nfdMaster) Run() error {
 		klog.InfoS("http server starting", "port", httpServer.Addr)
 		klog.InfoS("http server stopped", "exitCode", httpServer.ListenAndServe())
 	}()
-	defer httpServer.Close()
+	defer httpServer.Close() //nolint:errcheck
 
 	<-m.stop
 	klog.InfoS("shutting down nfd-master")
@@ -344,13 +343,13 @@ func (m *nfdMaster) nfdAPIUpdateHandler() {
 	rateLimit := time.After(time.Second)
 	for {
 		select {
-		case <-m.nfdController.updateAllNodesChan:
+		case <-m.updateAllNodesChan:
 			updateAll = true
-		case nodeName := <-m.nfdController.updateOneNodeChan:
+		case nodeName := <-m.updateOneNodeChan:
 			updateNodes[nodeName] = struct{}{}
-		case <-m.nfdController.updateAllNodeFeatureGroupsChan:
+		case <-m.updateAllNodeFeatureGroupsChan:
 			updateAllNodeFeatureGroups = true
-		case nodeFeatureGroupName := <-m.nfdController.updateNodeFeatureGroupChan:
+		case nodeFeatureGroupName := <-m.updateNodeFeatureGroupChan:
 			nodeFeatureGroup[nodeFeatureGroupName] = struct{}{}
 		case <-rateLimit:
 			// NodeFeature
@@ -587,8 +586,8 @@ func (m *nfdMaster) getAndMergeNodeFeatures(nodeName string) (*nfdv1alpha1.NodeF
 		},
 	}
 
-	sel := k8sLabels.SelectorFromSet(k8sLabels.Set{nfdv1alpha1.NodeFeatureObjNodeNameLabel: nodeName})
-	objs, err := m.nfdController.featureLister.List(sel)
+	sel := k8slabels.SelectorFromSet(k8slabels.Set{nfdv1alpha1.NodeFeatureObjNodeNameLabel: nodeName})
+	objs, err := m.featureLister.List(sel)
 	if err != nil {
 		return &nfdv1alpha1.NodeFeature{}, fmt.Errorf("failed to get NodeFeature resources for node %q: %w", nodeName, err)
 	}
@@ -667,7 +666,7 @@ func (m *nfdMaster) isThirdPartyNodeFeature(nodeFeature nfdv1alpha1.NodeFeature,
 }
 
 func (m *nfdMaster) nfdAPIUpdateOneNode(cli k8sclient.Interface, node *corev1.Node) error {
-	if m.nfdController == nil || m.nfdController.featureLister == nil {
+	if m.nfdController == nil || m.featureLister == nil {
 		return nil
 	}
 
@@ -690,7 +689,7 @@ func (m *nfdMaster) nfdAPIUpdateOneNode(cli k8sclient.Interface, node *corev1.No
 func (m *nfdMaster) nfdAPIUpdateAllNodeFeatureGroups() error {
 	klog.V(1).InfoS("updating all NodeFeatureGroups")
 
-	nodeFeatureGroupsList, err := m.nfdController.featureGroupLister.List(labels.Everything())
+	nodeFeatureGroupsList, err := m.featureGroupLister.List(k8slabels.Everything())
 	if err != nil {
 		return fmt.Errorf("failed to get NodeFeatureGroup objects: %w", err)
 	}
@@ -708,7 +707,7 @@ func (m *nfdMaster) nfdAPIUpdateAllNodeFeatureGroups() error {
 
 func (m *nfdMaster) nfdAPIUpdateNodeFeatureGroup(nfdClient nfdclientset.Interface, nodeFeatureGroup *nfdv1alpha1.NodeFeatureGroup) error {
 	klog.V(2).InfoS("evaluating NodeFeatureGroup", "nodeFeatureGroup", klog.KObj(nodeFeatureGroup))
-	if m.nfdController == nil || m.nfdController.featureLister == nil {
+	if m.nfdController == nil || m.featureLister == nil {
 		return nil
 	}
 
@@ -941,7 +940,7 @@ func (m *nfdMaster) processNodeFeatureRule(nodeName string, features *nfdv1alpha
 	labels := make(map[string]string)
 	annotations := make(map[string]string)
 	var taints []corev1.Taint
-	ruleSpecs, err := m.nfdController.ruleLister.List(k8sLabels.Everything())
+	ruleSpecs, err := m.ruleLister.List(k8slabels.Everything())
 	sort.Slice(ruleSpecs, func(i, j int) bool {
 		return ruleSpecs[i].Name < ruleSpecs[j].Name
 	})
